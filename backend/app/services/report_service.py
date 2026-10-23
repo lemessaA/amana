@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.models.case import InvestigationCase, TheftReport
 from app.models.device import DeviceIdentifier, Restriction
 from app.services.audit_service import log_event
+from app.services.assignment_service import assign_reviewer
+from app.services.notification_service import create_notification
 from app.services.notification_service import create_notification
 from app.services.imei_service import normalize_imei
 
@@ -40,6 +42,10 @@ def submit_theft_report(db: Session, user_id: uuid.UUID, data) -> dict:
             )
             db.add(case)
             db.flush()
+            assigned = assign_reviewer(db, device_id, user_id)
+            case.assigned_reviewer_id = assigned
+            if assigned is not None:
+                create_notification(db, assigned, "case_assigned_for_review")
 
             restriction = Restriction(
                 device_id=device_id,

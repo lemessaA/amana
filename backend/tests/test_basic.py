@@ -87,23 +87,25 @@ def test_triage_requires_reviewer():
     import uuid, random
     from app.db.session import SessionLocal
     from app.models.user import User
-    email = f"r{uuid.uuid4().hex[:8]}@example.com"
+    owner_email = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": owner_email, "password": "Passw0rd!"})
+    owner_token = r.json()["access_token"]
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
     imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
-    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
-    token = r.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    # make reviewer
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=owner_headers)
+    assert r.status_code == 200
+    r = client.post("/api/v1/theft-reports", json={"identifier_value": imei, "allegation_category": "lost", "description": "x"}, headers=owner_headers)
+    case_id = r.json()["case_id"]
+
+    rev_email = f"rev{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": rev_email, "password": "Passw0rd!"})
     db = SessionLocal()
-    u = db.query(User).filter(User.email == email).first()
+    u = db.query(User).filter(User.email == rev_email).first()
     u.role = "reviewer"
     db.commit()
     db.close()
-    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=headers)
-    assert r.status_code == 200
-    r = client.post("/api/v1/theft-reports", json={"identifier_value": imei, "allegation_category": "lost", "description": "x"}, headers=headers)
-    case_id = r.json()["case_id"]
-    # triage unsubstantiated removes restriction
-    r = client.post(f"/api/v1/investigations/{case_id}/triage", json={"outcome": "unsubstantiated", "reason": "baseless"}, headers=headers)
+    rh = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    r = client.post(f"/api/v1/investigations/{case_id}/triage", json={"outcome": "unsubstantiated", "reason": "baseless"}, headers=rh)
     assert r.status_code == 200, r.text
     assert r.json()["outcome"] == "unsubstantiated"
 
@@ -323,3 +325,81 @@ def test_transfer_expiry_processing():
     tr = db.get(Transfer, uuid.UUID(tid))
     assert tr.status == "expired"
     db.close()
+
+
+def test_identifier_conflict_resolve_extend():
+    import uuid, random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    # owner
+    email1 = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email1, "password": "Passw0rd!"})
+    t1 = r.json()["access_token"]; h1 = {"Authorization": f"Bearer {t1}"}
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h1)
+    assert r.status_code == 200
+    # second user creates conflict
+    email2 = f"s{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email2, "password": "Passw0rd!"})
+    t2 = r.json()["access_token"]; h2 = {"Authorization": f"Bearer {t2}"}
+    r = client.post("/api/v1/identifier-conflicts", json={"identifier_value": imei}, headers=h2)
+    assert r.status_code == 200
+    case_id = r.json()["case_id"]
+    # make current user senior reviewer by updating email2? Need reviewer; use existing r? Instead create reviewer account
+    rev_email = f"rev{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": rev_email, "password": "Passw0rd!"})
+    from app.db.session import SessionLocal
+    from app.models.user import User
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == rev_email).first()
+    u.role = "senior_reviewer"
+    db.commit(); db.close()
+    rh = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    # extend
+    r = client.post(f"/api/v1/identifier-conflicts/{case_id}/extend", json={"extension_hours": 24, "reason": "need more time"}, headers=rh)
+    assert r.status_code == 200, r.text
+    # resolve as reviewer-level; make reviewer too (same senior ok)
+    r = client.post(f"/api/v1/identifier-conflicts/{case_id}/resolve", json={"outcome": "duplicate", "reason": "same id"}, headers=rh)
+    assert r.status_code == 200, r.text
+    assert r.json()["outcome"] == "duplicate"
+
+
+def test_reconsideration_workflow():
+    import uuid, random
+    from app.db.session import SessionLocal
+    from app.models.user import User
+
+    email = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]; h = {"Authorization": f"Bearer {token}"}
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h)
+    assert r.status_code == 200
+    r = client.post("/api/v1/theft-reports", json={"identifier_value": imei, "allegation_category": "lost", "description": "x"}, headers=h)
+    case_id = r.json()["case_id"]
+
+    # reviewer triages unsubstantiated to close case
+    rev_email = f"rev{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": rev_email, "password": "Passw0rd!"})
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == rev_email).first()
+    u.role = "reviewer"
+    db.commit(); db.close()
+    rh = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    r = client.post(f"/api/v1/investigations/{case_id}/triage", json={"outcome": "unsubstantiated", "reason": "baseless"}, headers=rh)
+    assert r.status_code == 200
+
+    # requester submits reconsideration
+    r = client.post("/api/v1/reconsiderations", json={"case_type": "investigation", "case_id": case_id, "reason": "new info"}, headers=h)
+    assert r.status_code == 200, r.text
+    rid = r.json()["request_id"]
+
+    # senior reviewer decides
+    sr_email = f"sr{uuid.uuid4().hex[:6]}@example.com"
+    sr = client.post("/api/v1/auth/register", json={"email": sr_email, "password": "Passw0rd!"})
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == sr_email).first()
+    u.role = "senior_reviewer"
+    db.commit(); db.close()
+    srh = {"Authorization": f"Bearer {sr.json()['access_token']}"}
+    r = client.post(f"/api/v1/reconsiderations/{rid}/decide", json={"outcome": "rejected", "reason": "insufficient"}, headers=srh)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "decided"

@@ -22,6 +22,17 @@ def triage(case_id: str, data: TriageRequest, current: User = Depends(get_curren
         uid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="invalid case id")
+    from app.models.device import DeviceAssociation
+    from app.models.case import TheftReport, InvestigationCase
+    case_obj = db.get(InvestigationCase, uid)
+    if case_obj is not None:
+        excluded = set()
+        reports = db.query(TheftReport).filter(TheftReport.device_id == case_obj.device_id).all()
+        excluded.update(r.reporter_user_id for r in reports)
+        claimants = db.query(DeviceAssociation.user_id).filter(DeviceAssociation.device_id == case_obj.device_id, DeviceAssociation.association_status == "active").all()
+        excluded.update(u for (u,) in claimants)
+        if current.id in excluded:
+            raise HTTPException(status_code=403, detail="Reviewer has a system-detectable conflict")
     try:
         case = triage_case(db, current.id, uid, data.outcome, data.reason, data.next_review_days)
     except ValueError as e:

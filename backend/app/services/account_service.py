@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.device import DeviceAssociation, DeviceClaim, Restriction, Transfer
-from app.models.case import ClaimDisputeCase, InvestigationCase
+from app.models.case import ClaimDisputeCase, InvestigationCase, ReconsiderationRequest
 from app.models.user import User
 
 
@@ -51,6 +51,13 @@ def deactivate_account(db: Session, user_id: uuid.UUID) -> User:
         source_claim = db.get(DeviceClaim, t.source_claim_id)
         if source_claim is not None and source_claim.claimant_user_id == user_id:
             raise ValueError("blocked: pending transfer initiated")
+
+    # pending reconsideration
+    pending_recon = db.execute(
+        select(ReconsiderationRequest).where(ReconsiderationRequest.requester_user_id == user_id, ReconsiderationRequest.status == "pending")
+    ).scalars().all()
+    if pending_recon:
+        raise ValueError("blocked: pending reconsideration")
 
     # Apply deactivation
     now = datetime.now(timezone.utc)
