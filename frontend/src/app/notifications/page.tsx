@@ -70,8 +70,8 @@ export default function NotificationsPage() {
 
         {!loading && notifications.length > 0 && (
           <div className="space-y-3">
-            {notifications.map((notif) => (
-              <Card key={notif.notification_id}>
+            {notifications.map((notif, index) => (
+              <Card key={`${notif.notification_id}-${index}`}>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
