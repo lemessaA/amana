@@ -1,10 +1,12 @@
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.audit import AuditEvent
-from app.models.device import Device, DeviceAssociation, DeviceClaim, DeviceIdentifier, Restriction
+from app.models.case import ClaimDisputeCase, InvestigationCase
+from app.models.device import Transfer,  Device, DeviceAssociation, DeviceClaim, DeviceIdentifier, Restriction
 from app.schemas.device import RegisterDeviceRequest
 from app.services.audit_service import log_event
 from app.services.imei_service import normalize_imei, validate_imei
@@ -81,3 +83,62 @@ def lookup_device(db: Session, identifier_value: str) -> str:
         select(Restriction).where(Restriction.device_id == ident.device_id)
     ).scalars().all()
     return effective_public_status(list(restrictions))
+
+def release_association(db: Session, user_id: uuid.UUID, device_id: uuid.UUID) -> DeviceAssociation:
+    assoc = db.execute(
+        select(DeviceAssociation).where(
+            DeviceAssociation.device_id == device_id,
+            DeviceAssociation.user_id == user_id,
+            DeviceAssociation.association_status == "active",
+        )
+    ).scalar_one_or_none()
+    if assoc is None:
+        raise ValueError("no active association")
+
+    restrictions = db.execute(
+        select(Restriction).where(Restriction.device_id == device_id, Restriction.status == "active")
+    ).scalars().all()
+    if restrictions:
+        raise ValueError("active restriction blocks release")
+
+    pending_transfer = db.execute(
+        select(Transfer).where(Transfer.source_claim_id == assoc.claim_id, Transfer.status == "pending")
+    ).scalar_one_or_none()
+    if pending_transfer is not None:
+        raise ValueError("pending transfer blocks release")
+
+    active_investigations = db.execute(
+        select(InvestigationCase).where(
+            InvestigationCase.device_id == device_id,
+            InvestigationCase.case_status.in_(["open", "investigating"]),
+        )
+    ).scalars().all()
+    if active_investigations:
+        raise ValueError("active investigation blocks release")
+
+    now = datetime.now(timezone.utc)
+    assoc.association_status = "ended"
+    assoc.end_at = now
+    assoc.end_reason = "association_release"
+
+    claim = db.get(DeviceClaim, assoc.claim_id)
+    if claim is not None:
+        claim.claim_status = "ended"
+        claim.ended_at = now
+
+    active_dispute = db.execute(
+        select(ClaimDisputeCase).where(ClaimDisputeCase.device_id == device_id, ClaimDisputeCase.case_status == "open")
+    ).scalar_one_or_none()
+    if active_dispute is not None:
+        active_dispute.case_status = "closed"
+        active_dispute.outcome = "released_by_claimant"
+        active_dispute.outcome_reason = "Voluntary association release"
+        active_dispute.closed_at = now
+        db.add(active_dispute)
+
+    db.add(assoc)
+    db.commit()
+    db.refresh(assoc)
+    log_event(db, user_id, "association_released", "device_association", str(assoc.id), reason="association_release")
+    db.commit()
+    return assoc

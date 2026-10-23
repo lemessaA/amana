@@ -11,7 +11,13 @@ export default function Home() {
         <a className="underline" href="/report-theft">Report theft</a>
         <a className="underline" href="/notifications">Notifications</a>
         <a className="underline" href="/account">Account</a>
+        <a className="underline" href="/limited-access">Limited access</a>
         <a className="underline" href="/transfers">Transfers</a>
+        <a className="underline" href="/reviewer">Reviewer queue</a>
+        <a className="underline" href="/reviewer-conflicts">Reviewer conflicts</a>
+        <a className="underline" href="/reviewer-disputes">Reviewer disputes</a>
+        <a className="underline" href="/identifier-conflict">Identifier conflict</a>
+        <a className="underline" href="/claim-dispute">Claim dispute</a>
       </nav>
     </main>
   );

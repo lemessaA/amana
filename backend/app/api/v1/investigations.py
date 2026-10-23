@@ -6,8 +6,10 @@ from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.case import TriageRequest
+from app.schemas.case_actions import ReopenRequest
 from app.schemas.case_actions import ExtendRequest
 from app.services.case_deadline_service import extend_investigation
+from app.services.deadline_service import process_investigation_deadlines
 from app.models.case import InvestigationCase, TheftReport
 from app.models.device import Restriction
 from app.services.case_service import triage_case
@@ -108,3 +110,52 @@ def get_case(case_id: str, current: User = Depends(get_current_user), db: Sessio
         "reports": [{"id": str(r.id), "category": r.allegation_category, "description": r.description, "screening_status": r.screening_status} for r in reports],
         "restrictions": [{"type": r.restriction_type, "reason": r.reason, "next_review_at": r.next_review_at.isoformat() if r.next_review_at else None} for r in restrictions],
     }
+
+
+@router.post("/{case_id}/reopen")
+def reopen_investigation(case_id: str, data: ReopenRequest, current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current.role not in ("senior_reviewer", "system_administrator", "system_admin"):
+        raise HTTPException(status_code=403, detail="Senior reviewer role required")
+    reason = data.reason
+    if not reason:
+        raise HTTPException(status_code=400, detail="reason required")
+    from app.models.case import InvestigationCase
+    import uuid, datetime as dt
+    try:
+        cid = uuid.UUID(case_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid case id")
+    case = db.get(InvestigationCase, cid)
+    if case is None:
+        raise HTTPException(status_code=404, detail="case not found")
+    if case.case_status != "closed":
+        raise HTTPException(status_code=400, detail="case not closed")
+    prior_outcome = case.outcome
+    prior_reason = case.outcome_reason
+    now = dt.datetime.now(dt.timezone.utc)
+    case.case_status = "open"
+    case.closed_at = None
+    case.outcome = None
+    case.outcome_reason = f"Reopened: {reason} (prior outcome: {prior_outcome}; prior reason: {prior_reason})"
+    case.opened_at = now
+    case.deadline_at = now + dt.timedelta(hours=720)
+    case.extension_deadline_at = None
+    db.add(case)
+    if data.apply_provisional_restriction:
+        from app.models.device import Restriction
+        r = Restriction(device_id=case.device_id, restriction_type="theft_provisional", source_case_type="theft", source_case_id=case.id, reason=f"Provisional restriction from reopening: {reason}", status="active", next_review_at=now + dt.timedelta(hours=72))
+        db.add(r)
+    db.commit()
+    db.refresh(case)
+    from app.services.audit_service import log_event
+    log_event(db, current.id, "investigation_reopened", "investigation_case", str(case.id), reason=reason)
+    db.commit()
+    return {"case_id": str(case.id), "status": case.case_status, "opened_at": case.opened_at.isoformat(), "deadline_at": case.deadline_at.isoformat()}
+
+
+@router.post("/process-deadlines")
+def process_deadlines(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current.role not in ("senior_reviewer", "system_administrator", "system_admin"):
+        raise HTTPException(status_code=403, detail="Senior reviewer role required")
+    summary = process_investigation_deadlines(db)
+    return summary

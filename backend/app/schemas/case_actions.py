@@ -10,3 +10,8 @@ class ResolveRequest(BaseModel):
 class ExtendRequest(BaseModel):
     extension_hours: int
     reason: str
+
+
+class ReopenRequest(BaseModel):
+    reason: str
+    apply_provisional_restriction: bool = False

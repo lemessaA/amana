@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useRequireAuth } from "@/lib/auth";
 
 type Notification = { id: string; type: string; channel: string; delivery_status: string; created_at: string };
-
 export default function NotificationsPage() {
+  useRequireAuth();
   const [items, setItems] = useState<Notification[]>([]);
   const [error, setError] = useState("");
 

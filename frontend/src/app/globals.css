@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* AMANA Dark Cybersecurity Palette */
+  --color-primary-bg: #080D18;
+  --color-sidebar-bg: #0B1220;
+  --color-card-bg: #111B2E;
+  --color-elevated-surface: #162238;
+  --color-primary-accent: #22D3EE;
+  --color-secondary-accent: #3B82F6;
+  --color-primary-text: #F1F5F9;
+  --color-secondary-text: #94A3B8;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+  --color-border: #1E293B;
+  
+  /* Semantic color tokens */
+  --background: var(--color-primary-bg);
+  --foreground: var(--color-primary-text);
+  --muted: var(--color-secondary-text);
+  --muted-foreground: var(--color-secondary-text);
+  --accent: var(--color-primary-accent);
+  --accent-foreground: var(--color-primary-bg);
+  --destructive: var(--color-danger);
+  --success: var(--color-success);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-background: var(--color-primary-bg);
+  --color-foreground: var(--color-primary-text);
+  --color-muted: var(--color-secondary-text);
+  --color-card: var(--color-card-bg);
+  --color-accent: var(--color-primary-accent);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --color-border: var(--color-border);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  @apply border-border;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-card-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-elevated-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary-text);
 }

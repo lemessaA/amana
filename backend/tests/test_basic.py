@@ -403,3 +403,81 @@ def test_reconsideration_workflow():
     r = client.post(f"/api/v1/reconsiderations/{rid}/decide", json={"outcome": "rejected", "reason": "insufficient"}, headers=srh)
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "decided"
+
+
+def test_limited_case_access_for_deactivated():
+    import uuid
+    email = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]; h = {"Authorization": f"Bearer {token}"}
+    r = client.post("/api/v1/account/deactivate", headers=h)
+    assert r.status_code == 200
+    r = client.get("/api/v1/account/limited-case-access", headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["account_status"] == "deactivated"
+
+
+def test_reopen_closed_investigation():
+    import uuid, random
+    from app.db.session import SessionLocal
+    from app.models.user import User
+
+    email = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]; h = {"Authorization": f"Bearer {token}"}
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h)
+    assert r.status_code == 200
+    r = client.post("/api/v1/theft-reports", json={"identifier_value": imei, "allegation_category": "lost", "description": "x"}, headers=h)
+    case_id = r.json()["case_id"]
+
+    rev_email = f"rev{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": rev_email, "password": "Passw0rd!"})
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == rev_email).first()
+    u.role = "reviewer"
+    db.commit(); db.close()
+    rh = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    r = client.post(f"/api/v1/investigations/{case_id}/triage", json={"outcome": "unsubstantiated", "reason": "baseless"}, headers=rh)
+    assert r.status_code == 200
+
+    sr_email = f"sr{uuid.uuid4().hex[:6]}@example.com"
+    sr = client.post("/api/v1/auth/register", json={"email": sr_email, "password": "Passw0rd!"})
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == sr_email).first()
+    u.role = "senior_reviewer"
+    db.commit(); db.close()
+    srh = {"Authorization": f"Bearer {sr.json()['access_token']}"}
+    r = client.post(f"/api/v1/investigations/{case_id}/reopen", json={"reason": "new evidence", "apply_provisional_restriction": True}, headers=srh)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "open"
+
+
+def test_process_investigation_deadlines():
+    import uuid
+    rev_email = f"sr{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": rev_email, "password": "Passw0rd!"})
+    from app.db.session import SessionLocal
+    from app.models.user import User
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == rev_email).first()
+    u.role = "senior_reviewer"
+    db.commit(); db.close()
+    h = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    r = client.post("/api/v1/investigations/process-deadlines", headers=h)
+    assert r.status_code == 200, r.text
+    assert "warnings_sent" in r.json()
+
+
+def test_association_release():
+    import uuid, random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    email = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]; h = {"Authorization": f"Bearer {token}"}
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h)
+    assert r.status_code == 200
+    device_id = r.json()["device_id"]
+    r = client.post(f"/api/v1/devices/{device_id}/release", headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "ended"

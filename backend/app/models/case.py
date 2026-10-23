@@ -34,6 +34,9 @@ class InvestigationCase(Base):
     outcome_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     accountable_authority_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    deadline_warning_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cap_escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    triage_overdue_escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class IdentifierConflictCase(Base):
@@ -68,6 +71,9 @@ class ClaimDisputeCase(Base):
     outcome_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     accountable_authority_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    deadline_warning_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cap_escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    triage_overdue_escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Notification(Base):

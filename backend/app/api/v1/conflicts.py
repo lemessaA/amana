@@ -68,3 +68,15 @@ def extend_conflict(case_id: str, data: ExtendRequest, current: User = Depends(g
     log_event(db, current.id, "identifier_conflict_extended", "identifier_conflict_case", str(case.id), reason=data.reason)
     db.commit()
     return {"case_id": str(case.id), "deadline_at": case.deadline_at.isoformat()}
+
+
+@router.get("/queue")
+def conflict_queue(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current.role not in ("reviewer", "senior_reviewer", "system_administrator", "system_admin"):
+        raise HTTPException(status_code=403, detail="Reviewer role required")
+    from app.models.case import IdentifierConflictCase
+    q = db.query(IdentifierConflictCase).filter(IdentifierConflictCase.case_status == "open")
+    if current.role not in ("senior_reviewer", "system_administrator", "system_admin"):
+        q = q.filter(IdentifierConflictCase.assigned_reviewer_id == current.id)
+    items = q.all()
+    return [{"case_id": str(c.id), "device_identifier_id": str(c.device_identifier_id) if c.device_identifier_id else None, "existing_device_id": str(c.existing_device_id) if c.existing_device_id else None, "submitted_by": str(c.submitted_by), "opened_at": c.opened_at.isoformat(), "deadline_at": c.deadline_at.isoformat()} for c in items]

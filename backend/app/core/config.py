@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+psycopg2://amana:@localhost/amana"
     CORS_ORIGINS: str = "http://localhost:3000"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    DESIGNATED_CASE_AUTHORITY_USER_ID: str = ""
 
 
 settings = Settings()

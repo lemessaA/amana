@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -27,5 +28,24 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
     user = db.get(User, uid)
     if user is None or user.account_status != "active":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User unavailable")
+    return user
+
+
+def get_current_user_any_status(
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(security_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if creds is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    user_id = decode_access_token(creds.credentials)
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    try:
+        uid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.get(User, uid)
+    if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User unavailable")
     return user

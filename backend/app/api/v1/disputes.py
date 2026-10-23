@@ -74,3 +74,15 @@ def extend_dispute(case_id: str, data: ExtendRequest, current: User = Depends(ge
     log_event(db, current.id, "claim_dispute_extended", "claim_dispute_case", str(case.id), reason=data.reason)
     db.commit()
     return {"case_id": str(case.id), "deadline_at": case.deadline_at.isoformat()}
+
+
+@router.get("/queue")
+def dispute_queue(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current.role not in ("reviewer", "senior_reviewer", "system_administrator", "system_admin"):
+        raise HTTPException(status_code=403, detail="Reviewer role required")
+    from app.models.case import ClaimDisputeCase
+    q = db.query(ClaimDisputeCase).filter(ClaimDisputeCase.case_status == "open")
+    if current.role not in ("senior_reviewer", "system_administrator", "system_admin"):
+        q = q.filter(ClaimDisputeCase.assigned_reviewer_id == current.id)
+    items = q.all()
+    return [{"case_id": str(c.id), "device_id": str(c.device_id), "requester_user_id": str(c.requester_user_id), "opened_at": c.opened_at.isoformat(), "deadline_at": c.deadline_at.isoformat()} for c in items]

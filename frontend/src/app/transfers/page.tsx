@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useRequireAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
-
 export default function TransfersPage() {
+  useRequireAuth();
   const token = typeof window !== "undefined" ? localStorage.getItem("amana_token") : null;
   const [deviceId, setDeviceId] = useState("");
   const [recipientId, setRecipientId] = useState("");

@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useRequireAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
-
 export default function ReportTheftPage() {
+  useRequireAuth();
   const [identifierValue, setIdentifierValue] = useState("");
   const [category, setCategory] = useState("lost");
   const [description, setDescription] = useState("");

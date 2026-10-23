@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useRequireAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
-
 export default function AccountPage() {
+  useRequireAuth();
   const [msg, setMsg] = useState("");
 
   async function deactivate() {
