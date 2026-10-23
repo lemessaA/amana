@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -6,9 +7,10 @@ from sqlalchemy import select
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.models.device import Device, DeviceAssociation, DeviceIdentifier
+from app.models.device import Device, DeviceAssociation, DeviceIdentifier, DeviceClaim
 from app.schemas.device import PublicLookupResponse, RegisterDeviceRequest
 from app.services.device_service import EXPLANATION, lookup_device, register_device, release_association
+from app.services.audit_service import log_event
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
@@ -70,6 +72,10 @@ def register_test(data: RegisterDeviceRequest, current: User = Depends(get_curre
     Use this for testing with arbitrary IMEI/Serial numbers.
     """
     try:
+        from app.models.device import Device, DeviceIdentifier, DeviceClaim, DeviceAssociation
+        from app.services.audit_service import log_event
+        from datetime import datetime, timezone
+        
         # Bypass IMEI validation - accept any value
         normalized = data.identifier_value.strip()
         
@@ -81,9 +87,6 @@ def register_test(data: RegisterDeviceRequest, current: User = Depends(get_curre
             raise ValueError("identifier already registered")
         
         # Create device without validation
-        from app.models.device import Device, DeviceIdentifier, DeviceClaim, DeviceAssociation
-        from app.services.audit_service import log_event
-        
         device = Device(device_type=data.device_type)
         db.add(device)
         db.flush()
