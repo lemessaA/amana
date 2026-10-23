@@ -128,7 +128,7 @@ export default function RegisterPage() {
                   id="terms"
                   type="checkbox"
                   checked={agreedToTerms}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAgreedToTerms(e.target.checked)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAgreedToTerms(e.target.checked)}
                   disabled={loading}
                   required
                   className="mt-1 h-4 w-4 rounded border-border"

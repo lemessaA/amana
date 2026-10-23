@@ -32,7 +32,7 @@ export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
       options = [],
       value,
       onChange,
-      ...props
+      ...restProps
     },
     ref
   ) => {
@@ -47,36 +47,36 @@ export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
 
         {as === "textarea" ? (
           <Textarea
-            ref={ref as React.Ref<HTMLTextAreaElement>}
+            ref={ref as any}
             id={id}
             className={cn(error && "border-danger", className)}
             value={value}
             onChange={onChange}
-            {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...restProps}
           />
         ) : as === "select" ? (
-          <Select
-            ref={ref as React.Ref<HTMLSelectElement>}
+          <select
+            ref={ref as any}
             id={id}
-            className={cn(error && "border-danger", className)}
+            className={cn("flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50", error && "border-danger", className)}
             value={value}
             onChange={onChange}
-            {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}
+            {...restProps}
           >
             {options.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </Select>
+          </select>
         ) : (
           <Input
-            ref={ref as React.Ref<HTMLInputElement>}
+            ref={ref as any}
             id={id}
             className={cn(error && "border-danger", className)}
             value={value}
             onChange={onChange}
-            {...(props as React.InputHTMLAttributes<HTMLInputElement>)}
+            {...restProps}
           />
         )}
 

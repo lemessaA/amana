@@ -107,7 +107,7 @@ export default function RegisterDevicePage() {
                 label="Device Type"
                 as="select"
                 value={deviceType}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeviceType(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceType(e.target.value)}
                 disabled={loading}
                 options={[
                   { value: "phone", label: "Phone" },
@@ -156,7 +156,7 @@ export default function RegisterDevicePage() {
                 label="Acquisition Basis"
                 as="select"
                 value={acquisitionBasis}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAcquisitionBasis(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcquisitionBasis(e.target.value)}
                 disabled={loading}
                 options={[
                   { value: "personal_purchase", label: "Personal Purchase" },

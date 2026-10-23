@@ -93,7 +93,7 @@ export default function TransfersPage() {
                 type="text"
                 placeholder="Paste the device ID to transfer"
                 value={deviceId}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeviceId(e.target.value.trim())}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceId(e.target.value.trim())}
                 disabled={loading || !!success}
                 required
                 hint="You must be the current owner of the device"
@@ -104,7 +104,7 @@ export default function TransfersPage() {
                 type="email"
                 placeholder="recipient@example.com"
                 value={recipientEmail}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRecipientEmail(e.target.value.trim())}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecipientEmail(e.target.value.trim())}
                 disabled={loading || !!success}
                 required
               />
