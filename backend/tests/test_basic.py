@@ -106,3 +106,23 @@ def test_triage_requires_reviewer():
     r = client.post(f"/api/v1/investigations/{case_id}/triage", json={"outcome": "unsubstantiated", "reason": "baseless"}, headers=headers)
     assert r.status_code == 200, r.text
     assert r.json()["outcome"] == "unsubstantiated"
+
+
+def test_identifier_conflict_holds_new_submission():
+    import uuid, random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    # owner
+    email1 = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email1, "password": "Passw0rd!"})
+    token1 = r.json()["access_token"]
+    h1 = {"Authorization": f"Bearer {token1}"}
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h1)
+    assert r.status_code == 200
+    # second user submits conflict
+    email2 = f"s{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email2, "password": "Passw0rd!"})
+    token2 = r.json()["access_token"]
+    h2 = {"Authorization": f"Bearer {token2}"}
+    r = client.post("/api/v1/identifier-conflicts", json={"identifier_value": imei}, headers=h2)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "open"
