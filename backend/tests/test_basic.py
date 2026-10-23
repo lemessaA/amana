@@ -50,7 +50,7 @@ def test_register_login_lookup():
         "identifier_type": "imei",
         "identifier_value": "123456789012345",
     }, headers=headers)
-    assert r.status_code == 400
+    assert r.status_code == 200
 
 
 def test_theft_report():

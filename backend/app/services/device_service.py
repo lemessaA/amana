@@ -36,9 +36,12 @@ EXPLANATION = {
 
 def register_device(db: Session, user_id: uuid.UUID, data: RegisterDeviceRequest) -> Device:
     if data.identifier_type == "imei":
-        if not validate_imei(data.identifier_value):
-            raise ValueError("invalid IMEI")
+        # Accept the user's IMEI dynamically (do not enforce a checksum), so
+        # real devices can be registered just like serial numbers. We still
+        # normalize the value for consistent lookup/deduplication.
         normalized = normalize_imei(data.identifier_value)
+        if not normalized or not normalized.isdigit():
+            raise ValueError("invalid IMEI")
     else:
         normalized = data.identifier_value.strip()
 
