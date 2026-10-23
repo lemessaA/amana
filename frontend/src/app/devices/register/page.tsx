@@ -120,7 +120,7 @@ export default function RegisterDevicePage() {
                 label="Identifier Type"
                 as="select"
                 value={identifierType}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifierType(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifierType(e.target.value)}
                 disabled={loading}
                 options={[
                   { value: "imei", label: "IMEI (15 digits)" },
@@ -142,7 +142,7 @@ export default function RegisterDevicePage() {
                     : "e.g., ABC123456789"
                 }
                 value={identifierValue}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifierValue(e.target.value.trim())}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifierValue(e.target.value.trim())}
                 disabled={loading}
                 required
                 hint={

@@ -95,7 +95,7 @@ export default function DisputePage() {
                 type="text"
                 placeholder="IMEI or serial number"
                 value={identifier}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifier(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifier(e.target.value)}
                 disabled={loading || !!success}
                 required
               />

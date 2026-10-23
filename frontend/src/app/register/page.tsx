@@ -66,7 +66,7 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 disabled={loading}
                 required
               />
@@ -81,7 +81,7 @@ export default function RegisterPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="At least 8 characters"
                     value={password}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     disabled={loading}
                     minLength={8}
                     required
