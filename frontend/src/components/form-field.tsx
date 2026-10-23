@@ -32,11 +32,13 @@ export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
       options = [],
       value,
       onChange,
+      id: providedId,
       ...restProps
     },
     ref
   ) => {
-    const id = `field-${label.replace(/\s+/g, "-").toLowerCase()}`;
+    // Use provided id or generate deterministic id from label
+    const id = providedId || `field-${label.replace(/\s+/g, "-").toLowerCase()}`;
 
     return (
       <div className="space-y-1.5">
