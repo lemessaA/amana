@@ -42,11 +42,11 @@ def get_my_devices(current: User = Depends(get_current_user), db: Session = Depe
                     "identifier": {
                         "identifier_id": str(identifier.id) if identifier else None,
                         "identifier_type": identifier.identifier_type if identifier else None,
-                        "identifier_value": identifier.identifier_value if identifier else None,
+                        "identifier_value": identifier.normalized_value if identifier else None,
                     } if identifier else None,
                     "association_id": str(assoc.id),
                     "association_status": assoc.association_status,
-                    "created_at": assoc.created_at.isoformat() if assoc.created_at else None,
+                    "created_at": assoc.start_at.isoformat() if assoc.start_at else None,
                 })
         
         return {"devices": devices, "total": len(devices)}
