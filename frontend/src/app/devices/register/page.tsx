@@ -46,7 +46,7 @@ export default function RegisterDevicePage() {
 
   if (!ready || !user) {
     return (
-      <AppLayout requireAuth={true}>
+      <AppLayout >
         <div className="flex items-center justify-center py-12">
           <div className="space-y-4 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary-accent" />
@@ -178,7 +178,7 @@ export default function RegisterDevicePage() {
                   {loading ? "Registering..." : "Register Device"}
                 </Button>
                 <Link href="/dashboard">
-                  <Button variant="outline">Cancel</Button>
+                  <Button variant="secondary">Cancel</Button>
                 </Link>
               </div>
             </form>

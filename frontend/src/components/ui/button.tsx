@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "destructive" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -16,6 +16,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       primary: "bg-primary-accent text-accent-foreground hover:bg-opacity-90 active:bg-opacity-100",
       secondary: "bg-elevated-surface text-foreground border border-border hover:bg-opacity-75 active:bg-opacity-50",
       danger: "bg-danger text-white hover:bg-opacity-90 active:bg-opacity-100",
+      destructive: "bg-danger text-white hover:bg-opacity-90 active:bg-opacity-100",
       ghost: "text-foreground hover:bg-elevated-surface active:bg-opacity-75",
     };
 

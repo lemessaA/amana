@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 import { lookupDevice, type PublicLookupResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/form-field";

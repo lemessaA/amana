@@ -139,7 +139,7 @@ export default function DisputePage() {
                   {loading ? "Submitting..." : "Submit Dispute"}
                 </Button>
                 <Link href="/dashboard">
-                  <Button variant="outline">Cancel</Button>
+                  <Button variant="secondary">Cancel</Button>
                 </Link>
               </div>
             </form>

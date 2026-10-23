@@ -95,7 +95,7 @@ export default function InvestigationQueuePage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="font-mono text-sm text-secondary">{inv.case_id}</span>
-                            <Badge variant={inv.status === "open" ? "amber" : inv.status === "deciding" ? "blue" : "gray"}>
+                            <Badge variant={inv.status === "open" || inv.status === "investigating" ? "amber" : inv.status === "decided" ? "default" : "gray"}>
                               {inv.status}
                             </Badge>
                             {inv.has_provisional_restriction && (

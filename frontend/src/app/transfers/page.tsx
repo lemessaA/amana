@@ -124,7 +124,7 @@ export default function TransfersPage() {
                   {loading ? "Initiating..." : "Initiate Transfer"}
                 </Button>
                 <Link href="/dashboard">
-                  <Button variant="outline">Cancel</Button>
+                  <Button variant="secondary">Cancel</Button>
                 </Link>
               </div>
             </form>

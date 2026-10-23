@@ -109,7 +109,7 @@ export default function AccountPage() {
                 <p className="font-medium">Language</p>
                 <p className="text-sm text-secondary">English (Default)</p>
               </div>
-              <Button variant="outline" size="sm" disabled>
+              <Button variant="secondary" size="sm" disabled>
                 Coming Soon
               </Button>
             </div>
@@ -153,7 +153,7 @@ export default function AccountPage() {
                     {deactivating ? "Deactivating..." : "Yes, Deactivate"}
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => setConfirmDeactivate(false)}
                     disabled={deactivating}
                   >

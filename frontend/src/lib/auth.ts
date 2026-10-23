@@ -31,3 +31,30 @@ export function useRequireAuth() {
 
   return { user, ready };
 }
+
+// Re-export useAuth from context for backward compatibility
+export { useAuth } from "@/context/AuthContext";
+
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = typeof window !== "undefined" ? localStorage.getItem("amana_token") : null;
+    if (!t) {
+      setLoading(false);
+      return;
+    }
+
+    getMe()
+      .then(setUser)
+      .catch(() => {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("amana_token");
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { user, loading };
+}

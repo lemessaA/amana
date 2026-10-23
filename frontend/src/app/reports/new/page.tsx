@@ -138,7 +138,7 @@ export default function ReportTheftPage() {
                   {loading ? "Submitting..." : "Submit Report"}
                 </Button>
                 <Link href="/dashboard">
-                  <Button variant="outline">Cancel</Button>
+                  <Button variant="secondary">Cancel</Button>
                 </Link>
               </div>
             </form>
