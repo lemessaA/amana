@@ -111,7 +111,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Confirm your password"
                   value={confirmPassword}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setConfirmPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                   disabled={loading}
                   required
                   className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
