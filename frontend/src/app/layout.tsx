@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "AMANA", description: "Secure device registration" };
+export const metadata: Metadata = {
+  title: "AMANA — Secure Device Registration",
+  description: "Know the device. Check the status. Make informed decisions.",
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900">{children}</body>
+    <html lang="en" className="scroll-smooth">
+      <body className="bg-background text-foreground antialiased">
+        {children}
+      </body>
     </html>
   );
 }
