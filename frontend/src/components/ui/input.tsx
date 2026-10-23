@@ -9,7 +9,8 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", label, error, helperText, id, ...props }, ref) => {
-    const inputId = id || `input-${Math.random()}`;
+    // Generate deterministic ID from label to prevent hydration mismatch
+    const inputId = id || `input-${label ? label.replace(/\s+/g, "-").toLowerCase() : "unlabeled"}`;
     return (
       <div className="space-y-1.5">
         {label && (
