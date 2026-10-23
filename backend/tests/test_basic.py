@@ -81,3 +81,28 @@ def test_theft_report():
     }, headers=headers)
     assert r2.status_code == 200
     assert r2.json()["duplicate"] is True
+
+
+def test_triage_requires_reviewer():
+    import uuid, random
+    from app.db.session import SessionLocal
+    from app.models.user import User
+    email = f"r{uuid.uuid4().hex[:8]}@example.com"
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    # make reviewer
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == email).first()
+    u.role = "reviewer"
+    db.commit()
+    db.close()
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=headers)
+    assert r.status_code == 200
+    r = client.post("/api/v1/theft-reports", json={"identifier_value": imei, "allegation_category": "lost", "description": "x"}, headers=headers)
+    case_id = r.json()["case_id"]
+    # triage unsubstantiated removes restriction
+    r = client.post(f"/api/v1/investigations/{case_id}/triage", json={"outcome": "unsubstantiated", "reason": "baseless"}, headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["outcome"] == "unsubstantiated"
