@@ -64,7 +64,7 @@ export default function IdentifierConflictPage() {
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Conflict Reported</AlertTitle>
             <AlertDescription>
-              Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.caseId}</code>
+              Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.case_id}</code>
               <br />
               Deadline for review: {new Date(success.deadline).toLocaleDateString()}
             </AlertDescription>

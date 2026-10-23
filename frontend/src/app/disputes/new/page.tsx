@@ -69,7 +69,7 @@ export default function DisputePage() {
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Dispute Submitted</AlertTitle>
             <AlertDescription>
-              Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.caseId}</code>
+              Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.case_id}</code>
               <br />
               Deadline for review: {new Date(success.deadline).toLocaleDateString()}
             </AlertDescription>

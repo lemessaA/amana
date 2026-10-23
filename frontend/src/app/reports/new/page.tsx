@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/lib/auth";
-import { submitTheftReport } from "@/lib/api";
+import { submitTheftReport, type TheftReportResponse } from "@/lib/api";
 import { AppLayout } from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export default function ReportTheftPage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ caseId: string; status: string } | null>(null);
+  const [success, setSuccess] = useState<TheftReportResponse | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,7 +66,7 @@ export default function ReportTheftPage() {
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Report Submitted</AlertTitle>
             <AlertDescription>
-              Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.caseId}</code>
+              Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.case_id}</code>
               <br />
               Status: <span className="font-medium capitalize">{success.status}</span>
               <br />
