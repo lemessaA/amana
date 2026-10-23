@@ -63,6 +63,70 @@ def register(data: RegisterDeviceRequest, current: User = Depends(get_current_us
     return {"device_id": str(device.id)}
 
 
+@router.post("/register-test")
+def register_test(data: RegisterDeviceRequest, current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    TEST MODE: Register device with ANY identifier (bypasses IMEI validation).
+    Use this for testing with arbitrary IMEI/Serial numbers.
+    """
+    try:
+        # Bypass IMEI validation - accept any value
+        normalized = data.identifier_value.strip()
+        
+        # Check if identifier already exists
+        existing = db.execute(
+            select(DeviceIdentifier).where(DeviceIdentifier.normalized_value == normalized)
+        ).scalar_one_or_none()
+        if existing is not None:
+            raise ValueError("identifier already registered")
+        
+        # Create device without validation
+        from app.models.device import Device, DeviceIdentifier, DeviceClaim, DeviceAssociation
+        from app.services.audit_service import log_event
+        
+        device = Device(device_type=data.device_type)
+        db.add(device)
+        db.flush()
+        
+        ident = DeviceIdentifier(
+            device_id=device.id, 
+            identifier_type=data.identifier_type, 
+            normalized_value=normalized
+        )
+        db.add(ident)
+        
+        claim = DeviceClaim(
+            device_id=device.id, 
+            claimant_user_id=current.id, 
+            receipt_status="receipt-free", 
+            acquisition_basis="test/mode"
+        )
+        db.add(claim)
+        db.flush()
+        
+        assoc = DeviceAssociation(
+            device_id=device.id, 
+            claim_id=claim.id, 
+            user_id=current.id, 
+            association_status="active"
+        )
+        db.add(assoc)
+        
+        log_event(db, current.id, "device_registered_test", "device", str(device.id))
+        db.commit()
+        db.refresh(device)
+        
+        return {
+            "device_id": str(device.id),
+            "test_mode": True,
+            "identifier_value": normalized
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/lookup", response_model=PublicLookupResponse)
 def lookup(identifier: str, db: Session = Depends(get_db)):
     status_value = lookup_device(db, identifier)

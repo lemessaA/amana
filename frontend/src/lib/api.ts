@@ -163,6 +163,15 @@ export async function registerDevice(
   });
 }
 
+export async function registerDeviceTest(
+  data: RegisterDeviceRequest
+): Promise<RegisterDeviceResponse> {
+  return apiFetch<RegisterDeviceResponse>("/devices/register-test", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 export type PublicLookupResponse = {
   effective_status: string;
   explanation: string;
