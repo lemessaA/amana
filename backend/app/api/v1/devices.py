@@ -1,14 +1,57 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.models.device import Device, DeviceAssociation, DeviceIdentifier
 from app.schemas.device import PublicLookupResponse, RegisterDeviceRequest
 from app.services.device_service import EXPLANATION, lookup_device, register_device, release_association
 
 router = APIRouter(prefix="/devices", tags=["devices"])
+
+
+@router.get("/my-devices")
+def get_my_devices(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get all devices registered or claimed by current user"""
+    try:
+        # Get all active associations for the user
+        associations = db.execute(
+            select(DeviceAssociation).where(
+                DeviceAssociation.user_id == current.id,
+                DeviceAssociation.association_status == "active"
+            )
+        ).scalars().all()
+        
+        devices = []
+        for assoc in associations:
+            device = db.get(Device, assoc.device_id)
+            if device:
+                # Get device identifier
+                identifier = db.execute(
+                    select(DeviceIdentifier).where(
+                        DeviceIdentifier.device_id == device.id
+                    )
+                ).scalar_one_or_none()
+                
+                devices.append({
+                    "device_id": str(device.id),
+                    "device_type": device.device_type,
+                    "identifier": {
+                        "identifier_id": str(identifier.id) if identifier else None,
+                        "identifier_type": identifier.identifier_type if identifier else None,
+                        "identifier_value": identifier.identifier_value if identifier else None,
+                    } if identifier else None,
+                    "association_id": str(assoc.id),
+                    "association_status": assoc.association_status,
+                    "created_at": assoc.created_at.isoformat() if assoc.created_at else None,
+                })
+        
+        return {"devices": devices, "total": len(devices)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/register")

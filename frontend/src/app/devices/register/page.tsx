@@ -10,10 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FormField } from "@/components/form-field";
 import { AlertCircle, CheckCircle, Copy } from "lucide-react";
+import { useToast } from "@/components/ErrorToast";
+import { ErrorHandler } from "@/lib/errors";
 
 export default function RegisterDevicePage() {
   const router = useRouter();
   const { user, ready } = useRequireAuth();
+  const { addToast } = useToast();
   const [deviceType, setDeviceType] = useState("phone");
   const [identifierType, setIdentifierType] = useState("imei");
   const [identifierValue, setIdentifierValue] = useState("");
@@ -28,15 +31,24 @@ export default function RegisterDevicePage() {
     setLoading(true);
 
     try {
+      if (!identifierValue.trim()) {
+        throw new Error("Please enter a device identifier");
+      }
+
       const result = await registerDevice({
         device_type: deviceType,
         identifier_type: identifierType,
-        identifier_value: identifierValue,
+        identifier_value: identifierValue.trim(),
       });
+      
       setSuccess(result);
       setIdentifierValue("");
+      addToast("Device registered successfully!", "success", 5000);
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Registration failed");
+      const errorMessage = ErrorHandler.getUserMessage(err);
+      setError(errorMessage);
+      addToast(errorMessage, "error");
+      console.error("Device registration error:", err);
     } finally {
       setLoading(false);
     }
@@ -44,7 +56,7 @@ export default function RegisterDevicePage() {
 
   if (!ready || !user) {
     return (
-      <AppLayout >
+      <AppLayout>
         <div className="flex items-center justify-center py-12">
           <div className="space-y-4 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary-accent" />
@@ -74,6 +86,7 @@ export default function RegisterDevicePage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(success.device_id);
+                  addToast("Device ID copied to clipboard", "success", 2000);
                 }}
                 className="flex items-center gap-1 text-sm hover:underline"
               >

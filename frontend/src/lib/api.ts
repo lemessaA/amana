@@ -132,6 +132,28 @@ export type RegisterDeviceResponse = {
   association_id: string;
 };
 
+export type MyDevice = {
+  device_id: string;
+  device_type: string;
+  identifier?: {
+    identifier_id: string;
+    identifier_type: string;
+    identifier_value: string;
+  };
+  association_id: string;
+  association_status: string;
+  created_at: string;
+};
+
+export type MyDevicesResponse = {
+  devices: MyDevice[];
+  total: number;
+};
+
+export async function getMyDevices(): Promise<MyDevicesResponse> {
+  return apiFetch<MyDevicesResponse>("/devices/my-devices");
+}
+
 export async function registerDevice(
   data: RegisterDeviceRequest
 ): Promise<RegisterDeviceResponse> {
