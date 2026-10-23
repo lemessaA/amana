@@ -1,203 +1,155 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRequireAuth } from "@/lib/auth";
-import { getMe, getNotifications, type User, type Notification } from "@/lib/api";
-import { AppLayout } from "@/components/app-layout";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Bell, Package } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { getNotifications } from "@/lib/api";
+import { AlertCircle, CheckCircle, FileText, Clock, Smartphone, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
-  const { user, ready } = useRequireAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const { user } = useAuth();
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (ready && user) {
-      getNotifications()
-        .then(setNotifications)
-        .catch(() => setNotifications([]))
-        .finally(() => setLoadingNotifications(false));
-    }
-  }, [ready, user]);
+    const loadData = async () => {
+      try {
+        const notifications = await getNotifications();
+        setNotificationCount(notifications.length);
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!ready || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="space-y-4 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary-accent" />
-          <p className="text-secondary">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const statCards = [
-    { label: "Registered Devices", value: "—", icon: Package },
-    { label: "Active Claims", value: "—", icon: AlertCircle },
-    { label: "Notifications", value: notifications.length.toString(), icon: Bell },
-    { label: "Pending Actions", value: "—", icon: Plus },
-  ];
+    loadData();
+  }, []);
 
   return (
-    <AppLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-secondary">
-            Welcome back, <span className="font-medium text-foreground">{user.email}</span>
+    <AppLayout title="Dashboard">
+      <div className="space-y-6">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-primary-accent from-0% to-secondary-accent to-100% bg-opacity-10 rounded-lg p-6 border border-primary-accent border-opacity-20">
+          <h1 className="text-2xl font-bold text-foreground">
+            Welcome back, {user?.email?.split("@")[0] || "User"}
+          </h1>
+          <p className="text-secondary mt-2">
+            Manage your devices, review case status, and maintain secure device records.
           </p>
         </div>
 
-        {/* Stats */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((stat) => (
-            <Card key={stat.label}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-secondary uppercase tracking-wide">
-                      {stat.label}
-                    </p>
-                    <p className="text-2xl font-bold mt-2">{stat.value}</p>
-                  </div>
-                  <div className="text-primary-accent/50">
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <StatCard
+            title="Registered Devices"
+            value="—"
+            icon={Smartphone}
+            description="Device list API not available"
+            variant="default"
+          />
+          <StatCard
+            title="Pending Actions"
+            value={notificationCount}
+            icon={Clock}
+            description="Notifications requiring attention"
+            variant="warning"
+            onClick={() => window.location.href = "/notifications"}
+          />
+          <StatCard
+            title="Active Cases"
+            value="—"
+            icon={FileText}
+            description="Disputes and reports"
+            variant="default"
+          />
+          <StatCard
+            title="Account Status"
+            value={user?.account_status || "Active"}
+            icon={CheckCircle}
+            description={`Role: ${user?.role || "User"}`}
+            variant={user?.account_status === "active" ? "success" : "warning"}
+          />
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Actions Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription>Common tasks</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Link href="/devices/register" className="block">
-                  <Button variant="secondary" className="w-full justify-start">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Register Device
-                  </Button>
-                </Link>
-                <Link href="/reports/new" className="block">
-                  <Button variant="secondary" className="w-full justify-start">
-                    Report Theft
-                  </Button>
-                </Link>
-                <Link href="/transfers" className="block">
-                  <Button variant="secondary" className="w-full justify-start">
-                    Transfer Device
-                  </Button>
-                </Link>
-              </div>
+            <CardContent className="space-y-2">
+              <Link href="/devices/register" className="block">
+                <Button variant="secondary" className="w-full justify-start">
+                  + Register Device
+                </Button>
+              </Link>
+              <Link href="/reports/new" className="block">
+                <Button variant="secondary" className="w-full justify-start">
+                  📋 Report Suspected Theft
+                </Button>
+              </Link>
+              <Link href="/claim-dispute" className="block">
+                <Button variant="secondary" className="w-full justify-start">
+                  ⚖️ Submit Dispute Claim
+                </Button>
+              </Link>
+              <Link href="/transfers" className="block">
+                <Button variant="secondary" className="w-full justify-start">
+                  → Initiate Transfer
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
-          {/* Recent Notifications */}
+          {/* Getting Started Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent Notifications</CardTitle>
-              <CardDescription>
-                {notifications.length} {notifications.length === 1 ? "notification" : "notifications"}
-              </CardDescription>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Getting Started
+              </CardTitle>
+              <CardDescription>First time here?</CardDescription>
             </CardHeader>
-            <CardContent>
-              {loadingNotifications ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 bg-card rounded animate-pulse" />
-                  ))}
-                </div>
-              ) : notifications.length > 0 ? (
-                <div className="space-y-2 max-h-48 overflow-auto">
-                  {notifications.slice(0, 5).map((notif) => (
-                    <div key={notif.notification_id} className="text-sm p-2 rounded bg-elevated-surface border border-border">
-                      <p className="font-medium">{notif.type}</p>
-                      <p className="text-xs text-secondary">{notif.body || "No additional details"}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-secondary">No notifications yet.</p>
-              )}
-              <Link href="/notifications" className="block mt-4">
-                <Button variant="outline" className="w-full">
-                  View All
-                </Button>
-              </Link>
+            <CardContent className="space-y-3 text-sm">
+              <div>
+                <p className="font-medium text-foreground">1. Register a Device</p>
+                <p className="text-secondary">Start by creating a claim for your device with its IMEI or serial number.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">2. Report Issues</p>
+                <p className="text-secondary">If you suspect theft or have conflicting claims, submit a report for review.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">3. Transfer Safely</p>
+                <p className="text-secondary">Complete secure transfers after all disputes are resolved.</p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Role-specific Info */}
-        {(user.role === "reviewer" || user.role === "senior_reviewer") && (
-          <Card className="border-primary-accent/30 bg-primary-accent/10">
-            <CardHeader>
-              <CardTitle className="text-lg">Reviewer Tools</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Link href="/admin/investigations">
-                <Button variant="secondary" className="w-full justify-start">
-                  View Investigation Queue
-                </Button>
-              </Link>
-              <Link href="/admin/disputes">
-                <Button variant="secondary" className="w-full justify-start">
-                  View Disputes Queue
-                </Button>
-              </Link>
-              <Link href="/admin/conflicts">
-                <Button variant="secondary" className="w-full justify-start">
-                  View Conflicts Queue
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Getting Started */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-3 text-sm">
-              <li className="flex gap-3">
-                <span className="font-bold text-primary-accent">1.</span>
-                <span>
-                  <strong>Register your device</strong> with an IMEI or serial number to establish a claim.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary-accent">2.</span>
-                <span>
-                  <strong>Check device status</strong> anytime by looking up an identifier.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary-accent">3.</span>
-                <span>
-                  <strong>Report issues</strong> if you suspect theft or have conflicting claims.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary-accent">4.</span>
-                <span>
-                  <strong>Complete transfers</strong> safely through the AMANA platform.
-                </span>
-              </li>
-            </ol>
-          </CardContent>
-        </Card>
+        {/* Information Banner */}
+        <div className="bg-elevated-surface border border-border rounded-lg p-4 space-y-3">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
+            Important Information
+          </h3>
+          <ul className="text-sm text-secondary space-y-1 list-disc list-inside">
+            <li>Device listing from your account is not yet available. You can view registered devices when accessing transfers or dispute details.</li>
+            <li>All cases and disputes are reviewed by authorized staff within the specified deadline.</li>
+            <li>Transfers require all restrictions and disputes to be resolved before completion.</li>
+            <li>You can request reconsideration of any decision within the appeal period.</li>
+          </ul>
+        </div>
       </div>
     </AppLayout>
   );
