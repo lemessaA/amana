@@ -6,7 +6,7 @@ import { Textarea } from "./ui/textarea";
 import { Select } from "./ui/select";
 import { cn } from "@/lib/utils";
 
-interface BaseProps {
+type FormFieldProps = {
   label: string;
   error?: string;
   hint?: string;
@@ -15,9 +15,12 @@ interface BaseProps {
   id?: string;
   as?: "input" | "textarea" | "select";
   options?: Array<{ value: string; label: string }>;
-}
+  value?: any;
+  onChange?: any;
+  [key: string]: any;
+};
 
-export const FormField = React.forwardRef<HTMLElement, BaseProps & React.HTMLAttributes<any>>(
+export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
   (
     {
       label,
@@ -27,6 +30,8 @@ export const FormField = React.forwardRef<HTMLElement, BaseProps & React.HTMLAtt
       className,
       as = "input",
       options = [],
+      value,
+      onChange,
       ...props
     },
     ref
@@ -45,6 +50,8 @@ export const FormField = React.forwardRef<HTMLElement, BaseProps & React.HTMLAtt
             ref={ref as React.Ref<HTMLTextAreaElement>}
             id={id}
             className={cn(error && "border-danger", className)}
+            value={value}
+            onChange={onChange}
             {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
           />
         ) : as === "select" ? (
@@ -52,6 +59,8 @@ export const FormField = React.forwardRef<HTMLElement, BaseProps & React.HTMLAtt
             ref={ref as React.Ref<HTMLSelectElement>}
             id={id}
             className={cn(error && "border-danger", className)}
+            value={value}
+            onChange={onChange}
             {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}
           >
             {options.map((opt) => (
@@ -65,6 +74,8 @@ export const FormField = React.forwardRef<HTMLElement, BaseProps & React.HTMLAtt
             ref={ref as React.Ref<HTMLInputElement>}
             id={id}
             className={cn(error && "border-danger", className)}
+            value={value}
+            onChange={onChange}
             {...(props as React.InputHTMLAttributes<HTMLInputElement>)}
           />
         )}

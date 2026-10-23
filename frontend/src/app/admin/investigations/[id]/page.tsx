@@ -166,7 +166,7 @@ export default function InvestigationDetailPage({ params }: { params: { id: stri
                   label="Outcome"
                   as="select"
                   value={outcome}
-                  onChange={(e) => setOutcome(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOutcome(e.target.value)}
                   disabled={submitting}
                   options={[
                     { value: "", label: "Select an outcome..." },
