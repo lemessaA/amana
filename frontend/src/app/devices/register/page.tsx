@@ -17,7 +17,6 @@ export default function RegisterDevicePage() {
   const [deviceType, setDeviceType] = useState("phone");
   const [identifierType, setIdentifierType] = useState("imei");
   const [identifierValue, setIdentifierValue] = useState("");
-  const [acquisitionBasis, setAcquisitionBasis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<RegisterDeviceResponse | null>(null);
@@ -33,7 +32,6 @@ export default function RegisterDevicePage() {
         device_type: deviceType,
         identifier_type: identifierType,
         identifier_value: identifierValue,
-        acquisition_basis: acquisitionBasis,
       });
       setSuccess(result);
       setIdentifierValue("");
@@ -123,7 +121,7 @@ export default function RegisterDevicePage() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifierType(e.target.value)}
                 disabled={loading}
                 options={[
-                  { value: "imei", label: "IMEI (15 digits)" },
+                  { value: "imei", label: "IMEI (15 digits for phones)" },
                   { value: "serial", label: "Serial Number" },
                 ]}
                 required
@@ -138,7 +136,7 @@ export default function RegisterDevicePage() {
                 type="text"
                 placeholder={
                   identifierType === "imei"
-                    ? "e.g., 355017123456789"
+                    ? "e.g., 490154203237518"
                     : "e.g., ABC123456789"
                 }
                 value={identifierValue}
@@ -152,29 +150,14 @@ export default function RegisterDevicePage() {
                 }
               />
 
-              <FormField
-                label="Acquisition Basis"
-                as="select"
-                value={acquisitionBasis}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcquisitionBasis(e.target.value)}
-                disabled={loading}
-                options={[
-                  { value: "personal_purchase", label: "Personal Purchase" },
-                  { value: "gift", label: "Gift" },
-                  { value: "inherited", label: "Inherited" },
-                  { value: "other", label: "Other" },
-                ]}
-                required
-              />
-
               <div className="bg-blue-950/20 border border-blue-700/30 rounded p-3 text-sm text-secondary">
                 <p>
-                  ℹ️ This registration establishes your claim in AMANA. You can update device information or submit evidence later.
+                  ℹ️ This registration establishes your claim in AMANA. You can submit evidence or update information later.
                 </p>
               </div>
 
               <div className="flex gap-3">
-                <Button type="submit" disabled={loading || !identifierValue || !acquisitionBasis}>
+                <Button type="submit" disabled={loading || !identifierValue} isLoading={loading}>
                   {loading ? "Registering..." : "Register Device"}
                 </Button>
                 <Link href="/dashboard">
@@ -192,12 +175,20 @@ export default function RegisterDevicePage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div>
-              <h4 className="font-semibold mb-2">📱 For Phones</h4>
-              <p className="text-secondary">Dial <code className="bg-card px-2 py-1 rounded text-xs font-mono">*#06#</code> to display your IMEI.</p>
+              <h4 className="font-semibold mb-2">📱 For Phones (IMEI)</h4>
+              <ul className="list-disc list-inside text-secondary space-y-1">
+                <li>Dial <code className="bg-card px-2 py-1 rounded text-xs font-mono">*#06#</code> to display your IMEI</li>
+                <li>Must be 15 digits</li>
+                <li>Format: 490154203237518</li>
+              </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-2">💻 For Computers</h4>
-              <p className="text-secondary">Check Settings, System Information, or look for a serial number label on the device.</p>
+              <h4 className="font-semibold mb-2">💻 For Computers (Serial)</h4>
+              <ul className="list-disc list-inside text-secondary space-y-1">
+                <li>Check Settings → System Information</li>
+                <li>Look for a label on the device or back panel</li>
+                <li>Format: ABC123456789</li>
+              </ul>
             </div>
           </CardContent>
         </Card>

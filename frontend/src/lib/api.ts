@@ -122,7 +122,6 @@ export type RegisterDeviceRequest = {
   device_type: string;
   identifier_type: string;
   identifier_value: string;
-  acquisition_basis?: string;
 };
 
 export type RegisterDeviceResponse = {
