@@ -98,7 +98,7 @@ export default function DashboardPage() {
                   📋 Report Suspected Theft
                 </Button>
               </Link>
-              <Link href="/claim-dispute" className="block">
+              <Link href="/disputes/new" className="block">
                 <Button variant="secondary" className="w-full justify-start">
                   ⚖️ Submit Dispute Claim
                 </Button>

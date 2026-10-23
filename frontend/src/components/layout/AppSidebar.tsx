@@ -36,7 +36,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open = true, onClose }) 
     { href: "/devices", label: "My Devices", icon: Smartphone },
     { href: "/devices/register", label: "Register Device", icon: Plus },
     { href: "/reports/new", label: "Report Theft", icon: AlertTriangle },
-    { href: "/claim-dispute", label: "Disputes", icon: Gavel },
+    { href: "/disputes/new", label: "Disputes", icon: Gavel },
     { href: "/transfers", label: "Transfers", icon: GitBranch },
     { href: "/notifications", label: "Notifications", icon: Bell },
     { href: "/account", label: "Account", icon: Settings },
