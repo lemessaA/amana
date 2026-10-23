@@ -43,8 +43,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_identifier_conflict_cases_device_identifier_id'), 'identifier_conflict_cases', ['device_identifier_id'], unique=False)
     op.create_index(op.f('ix_identifier_conflict_cases_submitted_by'), 'identifier_conflict_cases', ['submitted_by'], unique=False)
-    op.drop_index(op.f('uq_active_assoc_per_device'), table_name='device_associations', postgresql_where="((association_status)::text = 'active'::text)")
-    op.drop_index(op.f('uq_active_investigation_per_device'), table_name='investigation_cases', postgresql_where="((case_status)::text = ANY ((ARRAY['open'::character varying, 'investigating'::character varying])::text[]))")
     # ### end Alembic commands ###
 
 
