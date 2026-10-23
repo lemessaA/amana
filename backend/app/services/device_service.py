@@ -69,11 +69,12 @@ def register_device(db: Session, user_id: uuid.UUID, data: RegisterDeviceRequest
 
 
 def lookup_device(db: Session, identifier_value: str) -> str:
-    normalized = identifier_value.strip()
-    if identifier_value.strip().isdigit():
+    stripped = identifier_value.strip().replace(" ", "").replace("-", "")
+    if stripped.isdigit():
         from app.services.imei_service import normalize_imei
-
         normalized = normalize_imei(identifier_value)
+    else:
+        normalized = identifier_value.strip()
     ident = db.execute(
         select(DeviceIdentifier).where(DeviceIdentifier.normalized_value == normalized)
     ).scalar_one_or_none()

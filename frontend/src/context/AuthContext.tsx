@@ -27,11 +27,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = localStorage.getItem("amana_token");
         if (token) {
-          const userData = await getMe();
-          setUser(userData);
+          try {
+            const userData = await getMe();
+            setUser(userData);
+          } catch (err) {
+            // Token invalid or expired
+            localStorage.removeItem("amana_token");
+            setError("Session expired. Please login again.");
+            setUser(null);
+          }
         }
       } catch (err) {
         localStorage.removeItem("amana_token");
+        setError("Failed to load user data");
       } finally {
         setIsLoading(false);
       }
@@ -74,8 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleLogout = async () => {
-    await logout();
-    setUser(null);
+    try {
+      await logout();
+    } catch (err: any) {
+      console.error("Logout error:", err);
+      // Clear local state even if logout API call fails
+    } finally {
+      setUser(null);
+      setError(null);
+      localStorage.removeItem("amana_token");
+    }
   };
 
   const hasRole = (role: string | string[]) => {

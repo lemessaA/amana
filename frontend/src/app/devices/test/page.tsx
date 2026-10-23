@@ -65,11 +65,25 @@ export default function TestRegisterDevicePage() {
     try {
       for (let i = 0; i < count; i++) {
         try {
-          // Generate random identifier
+          // Generate a random but Luhn-valid IMEI (or a serial)
           let identifier = "";
           if (identifierType === "imei") {
-            // Generate random 15-digit number
-            identifier = String(Math.random()).replace("0.", "").substring(0, 15).padEnd(15, "0");
+            // Generate a random 14-digit base, then append a Luhn check digit.
+            let base = "";
+            for (let d = 0; d < 14; d++) {
+              base += Math.floor(Math.random() * 10).toString();
+            }
+            let total = 0;
+            for (let idx = 0; idx < base.length; idx++) {
+              let digit = parseInt(base[base.length - 1 - idx], 10);
+              if (idx % 2 === 0) {
+                digit *= 2;
+                if (digit > 9) digit -= 9;
+              }
+              total += digit;
+            }
+            const check = (10 - (total % 10)) % 10;
+            identifier = base + check.toString();
           } else {
             // Generate random serial
             identifier = `TEST-${Date.now()}-${i}`;
@@ -288,9 +302,9 @@ export default function TestRegisterDevicePage() {
             <p className="text-sm text-secondary">Click any to copy:</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {[
-                "111111111111111",
-                "123456789012345",
-                "999999999999999",
+                "490154203237518",
+                "356938035643809",
+                "662760219504881",
                 "TEST-SERIAL-001",
                 "DEVICE-PROD-123",
                 "QA-TEST-DEVICE",

@@ -72,8 +72,13 @@ def register_test(data: RegisterDeviceRequest, current: User = Depends(get_curre
     Use this for testing with arbitrary IMEI/Serial numbers.
     """
     try:
-        # Bypass IMEI validation - accept any value
-        normalized = data.identifier_value.strip()
+        # Bypass IMEI strict validation (test mode) but still normalize identifiers
+        # so IMEI values behave consistently with production registration/lookup.
+        if data.identifier_type == "imei":
+            from app.services.imei_service import normalize_imei
+            normalized = normalize_imei(data.identifier_value)
+        else:
+            normalized = data.identifier_value.strip()
         
         # Check if identifier already exists
         existing = db.execute(

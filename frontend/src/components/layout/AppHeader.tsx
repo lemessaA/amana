@@ -18,8 +18,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onMenuClick, title }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
-    router.replace("/login");
+    try {
+      await logout();
+      router.replace("/login");
+    } catch (err: any) {
+      console.error("Logout failed:", err);
+      // Still redirect to login even if logout fails
+      router.replace("/login");
+    }
   };
 
   return (
