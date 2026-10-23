@@ -19,12 +19,13 @@ def get_current_user(
     """Get authenticated user with active status"""
     if creds is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    user_id = decode_access_token(creds.credentials)
-    if user_id is None:
+    payload = decode_access_token(creds.credentials)
+    if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user_id = payload.get("sub")
     try:
         uid = uuid.UUID(user_id)
-    except ValueError:
+    except (ValueError, TypeError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
     user = db.get(User, uid)
     if user is None or user.account_status != "active":
@@ -39,12 +40,13 @@ def get_current_user_any_status(
     """Get authenticated user regardless of account status"""
     if creds is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    user_id = decode_access_token(creds.credentials)
-    if user_id is None:
+    payload = decode_access_token(creds.credentials)
+    if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user_id = payload.get("sub")
     try:
         uid = uuid.UUID(user_id)
-    except ValueError:
+    except (ValueError, TypeError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user = db.get(User, uid)
     if user is None:

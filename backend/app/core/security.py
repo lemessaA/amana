@@ -18,17 +18,23 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(subject: str, expires_minutes: int | None = None) -> str:
+def create_access_token(subject: str, role: str = "claimant", expires_minutes: int | None = None) -> str:
+    """Create JWT token with user ID and role"""
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    to_encode: dict[str, Any] = {"sub": subject, "exp": expire}
+    to_encode: dict[str, Any] = {
+        "sub": subject,
+        "role": role,
+        "exp": expire
+    }
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> str | None:
+def decode_access_token(token: str) -> dict[str, Any] | None:
+    """Decode JWT and return payload with user ID and role"""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")
+        return payload
     except jwt.PyJWTError:
         return None
