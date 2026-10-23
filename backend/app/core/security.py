@@ -6,20 +6,16 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 ALGORITHM = "HS256"
 
 
 def hash_password(password: str) -> str:
-    # Bcrypt has a 72-byte password limit; truncate to prevent errors
-    truncated_password = password[:72]
-    return pwd_context.hash(truncated_password)
+    return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    # Bcrypt has a 72-byte password limit; truncate to prevent errors
-    truncated_plain = plain[:72]
-    return pwd_context.verify(truncated_plain, hashed)
+    return pwd_context.verify(plain, hashed)
 
 
 def create_access_token(subject: str, expires_minutes: int | None = None) -> str:
