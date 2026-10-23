@@ -11,6 +11,7 @@ export default function Home() {
         <a className="underline" href="/report-theft">Report theft</a>
         <a className="underline" href="/notifications">Notifications</a>
         <a className="underline" href="/account">Account</a>
+        <a className="underline" href="/transfers">Transfers</a>
       </nav>
     </main>
   );

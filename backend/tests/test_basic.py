@@ -276,3 +276,50 @@ def test_notifications_created():
     assert r.status_code == 200
     types = [n["type"] for n in r.json()]
     assert "theft_report_received" in types
+
+
+def test_transfer_expiry_processing():
+    import uuid, random
+    from app.db.session import SessionLocal
+    from app.models.device import DeviceClaim, Transfer
+    from app.models.user import User
+
+    email1 = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email1, "password": "Passw0rd!"})
+    t1 = r.json()["access_token"]; h1 = {"Authorization": f"Bearer {t1}"}
+    email2 = f"r{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email2, "password": "Passw0rd!"})
+    recipient_id = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()["id"]
+
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h1)
+    device_id = r.json()["device_id"]
+    db = SessionLocal()
+    claim = db.query(DeviceClaim).filter(DeviceClaim.device_id == device_id).first()
+    claim.acquisition_basis = "accepted receipt-backed claim"
+    db.commit(); db.close()
+
+    r = client.post("/api/v1/transfers/initiate", json={"device_id": device_id, "recipient_user_id": recipient_id}, headers=h1)
+    assert r.status_code == 200
+    tid = r.json()["transfer_id"]
+
+    # expire manually
+    db = SessionLocal()
+    tr = db.get(Transfer, uuid.UUID(tid))
+    from datetime import datetime, timedelta, timezone
+    tr.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    db.commit()
+    # reviewer
+    rev_email = f"rev{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": rev_email, "password": "Passw0rd!"})
+    dbu = SessionLocal()
+    u = dbu.query(User).filter(User.email == rev_email).first()
+    u.role = "reviewer"
+    dbu.commit(); dbu.close()
+    rh = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    r = client.post("/api/v1/transfers/expire-overdue", headers=rh)
+    assert r.status_code == 200, r.text
+    db = SessionLocal()
+    tr = db.get(Transfer, uuid.UUID(tid))
+    assert tr.status == "expired"
+    db.close()
