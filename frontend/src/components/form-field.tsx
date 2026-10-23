@@ -13,18 +13,11 @@ interface BaseProps {
   required?: boolean;
   className?: string;
   id?: string;
+  as?: "input" | "textarea" | "select";
+  options?: Array<{ value: string; label: string }>;
 }
 
-type FormFieldProps = BaseProps & (
-  | (React.InputHTMLAttributes<HTMLInputElement> & { as?: "input" | undefined })
-  | (React.TextareaHTMLAttributes<HTMLTextAreaElement> & { as: "textarea" })
-  | (React.SelectHTMLAttributes<HTMLSelectElement> & {
-      as: "select";
-      options?: Array<{ value: string; label: string }> | undefined;
-    })
-);
-
-export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
+export const FormField = React.forwardRef<HTMLElement, BaseProps & React.HTMLAttributes<any>>(
   (
     {
       label,
@@ -32,7 +25,8 @@ export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
       hint,
       required,
       className,
-      as,
+      as = "input",
+      options = [],
       ...props
     },
     ref
@@ -60,7 +54,7 @@ export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
             className={cn(error && "border-danger", className)}
             {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}
           >
-            {(props as any).options?.map((opt: any) => (
+            {options.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
