@@ -10,7 +10,7 @@ dependencies = [
   "pydantic>=2.5",
   "pydantic-settings>=2.1",
   "psycopg2-binary>=2.9",
-  "passlib[bcrypt]>=1.7",
+  "passlib[argon2]>=1.7",
   "python-jose[cryptography]>=3.3",
   "python-multipart>=0.0.9",
 ]
