@@ -57,7 +57,14 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_theft_reports_device_id'), 'theft_reports', ['device_id'], unique=False)
     op.create_index(op.f('ix_theft_reports_reporter_user_id'), 'theft_reports', ['reporter_user_id'], unique=False)
-    op.drop_index(op.f('uq_active_assoc_per_device'), table_name='device_associations', postgresql_where="((association_status)::text = 'active'::text)")
+    from sqlalchemy import text
+    op.create_index(
+        "uq_active_investigation_per_device",
+        "investigation_cases",
+        ["device_id"],
+        unique=True,
+        postgresql_where=text("case_status IN ('open','investigating')"),
+    )
     # ### end Alembic commands ###
 
 
@@ -68,6 +75,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_theft_reports_reporter_user_id'), table_name='theft_reports')
     op.drop_index(op.f('ix_theft_reports_device_id'), table_name='theft_reports')
     op.drop_table('theft_reports')
+    op.drop_index("uq_active_investigation_per_device", table_name="investigation_cases")
     op.drop_index(op.f('ix_investigation_cases_device_id'), table_name='investigation_cases')
     op.drop_table('investigation_cases')
     # ### end Alembic commands ###

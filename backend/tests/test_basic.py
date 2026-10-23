@@ -41,3 +41,32 @@ def test_register_login_lookup():
         "identifier_value": "123456789012345",
     }, headers=headers)
     assert r.status_code == 400
+
+
+def test_theft_report():
+    import uuid
+    email = f"t{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    r = client.post("/api/v1/devices/register", json={
+        "device_type": "phone",
+        "identifier_type": "imei",
+        "identifier_value": "353326084996223",
+    }, headers=headers)
+    assert r.status_code == 200, r.text
+    r = client.post("/api/v1/theft-reports", json={
+        "identifier_value": "353326084996223",
+        "allegation_category": "lost",
+        "description": "phone stolen",
+    }, headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["duplicate"] is False
+    # second report links
+    r2 = client.post("/api/v1/theft-reports", json={
+        "identifier_value": "353326084996223",
+        "allegation_category": "lost",
+        "description": "duplicate",
+    }, headers=headers)
+    assert r2.status_code == 200
+    assert r2.json()["duplicate"] is True
