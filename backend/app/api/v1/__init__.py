@@ -11,9 +11,11 @@ from app.api.v1.evidence import router as evidence_router
 from app.api.v1.account import router as account_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.reconsiderations import router as reconsiderations_router
+from app.api.v1.roles import router as roles_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
+api_router.include_router(roles_router)
 api_router.include_router(devices_router)
 api_router.include_router(reports_router)
 api_router.include_router(investigations_router)
