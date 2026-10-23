@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/lib/auth";
-import { submitClaimDispute } from "@/lib/api";
+import { submitClaimDispute, type ClaimDisputeResponse } from "@/lib/api";
 import { AppLayout } from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export default function DisputePage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ caseId: string; deadline: string } | null>(null);
+  const [success, setSuccess] = useState<ClaimDisputeResponse | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,10 +31,7 @@ export default function DisputePage() {
         acquisition_basis: basis,
         description,
       });
-      setSuccess({
-        caseId: result.case_id,
-        deadline: result.deadline_at,
-      });
+      setSuccess(result);
       setIdentifier("");
       setDescription("");
     } catch (err: any) {
@@ -71,7 +68,7 @@ export default function DisputePage() {
             <AlertDescription>
               Case ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.case_id}</code>
               <br />
-              Deadline for review: {new Date(success.deadline).toLocaleDateString()}
+              Deadline for review: {new Date(success.deadline_at).toLocaleDateString()}
             </AlertDescription>
           </Alert>
         )}

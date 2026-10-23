@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/lib/auth";
-import { initiateTransfer } from "@/lib/api";
+import { initiateTransfer, type TransferResponse } from "@/lib/api";
 import { AppLayout } from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ export default function TransfersPage() {
   const [recipientEmail, setRecipientEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ transferId: string; expiresAt: string } | null>(null);
+  const [success, setSuccess] = useState<TransferResponse | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,10 +29,7 @@ export default function TransfersPage() {
         device_id: deviceId,
         recipient_email: recipientEmail,
       });
-      setSuccess({
-        transferId: result.transfer_id,
-        expiresAt: result.expires_at,
-      });
+      setSuccess(result);
       setDeviceId("");
       setRecipientEmail("");
     } catch (err: any) {
@@ -67,9 +64,9 @@ export default function TransfersPage() {
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Transfer Initiated</AlertTitle>
             <AlertDescription>
-              Transfer ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.transferId}</code>
+              Transfer ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.transfer_id}</code>
               <br />
-              The recipient will need to accept this transfer. It expires at {new Date(success.expiresAt).toLocaleString()}.
+              The recipient will need to accept this transfer. It expires at {new Date(success.expires_at).toLocaleString()}.
             </AlertDescription>
           </Alert>
         )}

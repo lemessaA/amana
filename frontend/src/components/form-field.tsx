@@ -20,7 +20,7 @@ type FormFieldProps = BaseProps & (
   | (React.TextareaHTMLAttributes<HTMLTextAreaElement> & { as: "textarea" })
   | (React.SelectHTMLAttributes<HTMLSelectElement> & {
       as: "select";
-      options?: Array<{ value: string; label: string }>;
+      options?: Array<{ value: string; label: string }> | undefined;
     })
 );
 

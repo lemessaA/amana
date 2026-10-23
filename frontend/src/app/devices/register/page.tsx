@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerDevice } from "@/lib/api";
+import { registerDevice, type RegisterDeviceResponse } from "@/lib/api";
 import { useRequireAuth } from "@/lib/auth";
 import { AppLayout } from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ export default function RegisterDevicePage() {
   const [acquisitionBasis, setAcquisitionBasis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ deviceId: string } | null>(null);
+  const [success, setSuccess] = useState<RegisterDeviceResponse | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +35,7 @@ export default function RegisterDevicePage() {
         identifier_value: identifierValue,
         acquisition_basis: acquisitionBasis,
       });
-      setSuccess({ deviceId: result.device_id });
+      setSuccess(result);
       setIdentifierValue("");
     } catch (err: any) {
       setError(err.data?.detail || err.message || "Registration failed");
@@ -72,10 +72,10 @@ export default function RegisterDevicePage() {
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Device Registered Successfully</AlertTitle>
             <AlertDescription className="mt-2">
-              <p className="mb-3">Device ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.deviceId}</code></p>
+              <p className="mb-3">Device ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.device_id}</code></p>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(success.deviceId);
+                  navigator.clipboard.writeText(success.device_id);
                 }}
                 className="flex items-center gap-1 text-sm hover:underline"
               >
