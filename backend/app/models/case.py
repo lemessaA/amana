@@ -34,3 +34,20 @@ class InvestigationCase(Base):
     outcome_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     accountable_authority_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+
+class IdentifierConflictCase(Base):
+    __tablename__ = "identifier_conflict_cases"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    device_identifier_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("device_identifiers.id"), nullable=True, index=True)
+    submitted_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    existing_device_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("devices.id"), nullable=True)
+    case_status: Mapped[str] = mapped_column(String(16), default="open")
+    assigned_reviewer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    extension_deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    outcome: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    outcome_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
