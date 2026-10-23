@@ -144,7 +144,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open = true, onClose }) 
           )}
 
           {/* Admin Navigation */}
-          {user?.role === "system_administrator" && (
+          {user?.role === "admin" && (
             <div className="space-y-1 pt-4 border-t border-border">
               <p className="px-3 text-xs font-semibold text-secondary uppercase tracking-wider">
                 Admin
