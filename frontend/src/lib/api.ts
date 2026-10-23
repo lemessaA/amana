@@ -59,7 +59,7 @@ async function apiFetch<T>(
   };
 
   if (token && !init?.skipAuth) {
-    headers.Authorization = `Bearer ${token}`;
+    (headers as any).Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(`${API_BASE}${path}`, {

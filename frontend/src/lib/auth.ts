@@ -32,9 +32,6 @@ export function useRequireAuth() {
   return { user, ready };
 }
 
-// Re-export useAuth from context for backward compatibility
-export { useAuth } from "@/context/AuthContext";
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
