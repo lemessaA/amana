@@ -72,10 +72,6 @@ def register_test(data: RegisterDeviceRequest, current: User = Depends(get_curre
     Use this for testing with arbitrary IMEI/Serial numbers.
     """
     try:
-        from app.models.device import Device, DeviceIdentifier, DeviceClaim, DeviceAssociation
-        from app.services.audit_service import log_event
-        from datetime import datetime, timezone
-        
         # Bypass IMEI validation - accept any value
         normalized = data.identifier_value.strip()
         
