@@ -16,7 +16,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     if get_user_by_email(db, data.email):
         raise HTTPException(status_code=400, detail="Email already registered")
     user = create_user(db, data)
-    token = create_access_token(str(user.id))
+    token = create_access_token(str(user.id), role=user.role)
     return TokenResponse(access_token=token)
 
 
@@ -25,7 +25,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate(db, data.email, data.password)
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return TokenResponse(access_token=create_access_token(str(user.id)))
+    return TokenResponse(access_token=create_access_token(str(user.id), role=user.role))
 
 
 @router.get("/me", response_model=UserOut)
