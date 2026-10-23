@@ -1,62 +1,31 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import React from "react";
 import { cn } from "@/lib/utils";
 
-const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
-  {
-    variants: {
-      variant: {
-        default: "bg-background border-border text-foreground",
-        danger:
-          "border-danger/50 bg-danger/10 text-danger [&>svg]:text-danger",
-        warning:
-          "border-warning/50 bg-warning/10 text-warning [&>svg]:text-warning",
-        success:
-          "border-success/50 bg-success/10 text-success [&>svg]:text-success",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+type AlertVariant = "default" | "danger" | "warning" | "success";
 
-const Alert = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
-));
+interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: AlertVariant;
+}
+
+const variantStyles: Record<AlertVariant, string> = {
+  default: "bg-elevated-surface border-border text-foreground",
+  danger: "bg-danger bg-opacity-10 border-danger text-danger",
+  warning: "bg-warning bg-opacity-10 border-warning text-warning",
+  success: "bg-success bg-opacity-10 border-success text-success",
+};
+
+export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  ({ className, variant = "default", ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("rounded-lg border p-4 flex gap-3", variantStyles[variant], className)}
+      {...props}
+    />
+  )
+);
 Alert.displayName = "Alert";
 
-const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h5
-    ref={ref}
-    className={cn("mb-1 font-medium leading-tight", className)}
-    {...props}
-  />
-));
-AlertTitle.displayName = "AlertTitle";
-
-const AlertDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
-    {...props}
-  />
-));
+export const AlertDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("text-sm", className)} {...props} />
+);
 AlertDescription.displayName = "AlertDescription";
-
-export { Alert, AlertTitle, AlertDescription, alertVariants };

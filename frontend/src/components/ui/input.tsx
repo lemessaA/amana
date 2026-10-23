@@ -1,22 +1,37 @@
-import * as React from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {}
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+}
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => (
-    <input
-      type={type}
-      className={cn(
-        "flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      ref={ref}
-      {...props}
-    />
-  )
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type = "text", label, error, helperText, id, ...props }, ref) => {
+    const inputId = id || `input-${Math.random()}`;
+    return (
+      <div className="space-y-1.5">
+        {label && (
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground">
+            {label}
+          </label>
+        )}
+        <input
+          ref={ref}
+          id={inputId}
+          type={type}
+          className={cn(
+            "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+            error ? "border-danger" : "border-border",
+            className
+          )}
+          {...props}
+        />
+        {error && <p className="text-xs text-danger">{error}</p>}
+        {helperText && !error && <p className="text-xs text-secondary">{helperText}</p>}
+      </div>
+    );
+  }
 );
 Input.displayName = "Input";
-
-export { Input };

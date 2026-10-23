@@ -1,0 +1,207 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { registerDevice } from "@/lib/api";
+import { useRequireAuth } from "@/lib/auth";
+import { AppLayout } from "@/components/app-layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FormField } from "@/components/form-field";
+import { AlertCircle, CheckCircle, Copy } from "lucide-react";
+
+export default function RegisterDevicePage() {
+  const router = useRouter();
+  const { user, ready } = useRequireAuth();
+  const [deviceType, setDeviceType] = useState("phone");
+  const [identifierType, setIdentifierType] = useState("imei");
+  const [identifierValue, setIdentifierValue] = useState("");
+  const [acquisitionBasis, setAcquisitionBasis] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState<{ deviceId: string } | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess(null);
+    setLoading(true);
+
+    try {
+      const result = await registerDevice({
+        device_type: deviceType,
+        identifier_type: identifierType,
+        identifier_value: identifierValue,
+        acquisition_basis: acquisitionBasis,
+      });
+      setSuccess({ deviceId: result.device_id });
+      setIdentifierValue("");
+    } catch (err: any) {
+      setError(err.data?.detail || err.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!ready || !user) {
+    return (
+      <AppLayout requireAuth={true}>
+        <div className="flex items-center justify-center py-12">
+          <div className="space-y-4 text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary-accent" />
+            <p className="text-secondary">Loading...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div className="max-w-2xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Register Device</h1>
+          <p className="mt-1 text-secondary">
+            Register your phone or computer to establish a claim and create a record in AMANA.
+          </p>
+        </div>
+
+        {success && (
+          <Alert className="bg-success/10 border-success/30 text-success">
+            <CheckCircle className="h-4 w-4" />
+            <AlertTitle>Device Registered Successfully</AlertTitle>
+            <AlertDescription className="mt-2">
+              <p className="mb-3">Device ID: <code className="bg-background px-2 py-1 rounded text-xs font-mono">{success.deviceId}</code></p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(success.deviceId);
+                }}
+                className="flex items-center gap-1 text-sm hover:underline"
+              >
+                <Copy className="h-3 w-3" />
+                Copy Device ID
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Device Information</CardTitle>
+            <CardDescription>
+              Provide the identifier for the device you're registering
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="danger">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <FormField
+                label="Device Type"
+                as="select"
+                value={deviceType}
+                onChange={(e) => setDeviceType(e.target.value)}
+                disabled={loading}
+                options={[
+                  { value: "phone", label: "Phone" },
+                  { value: "computer", label: "Computer" },
+                ]}
+                required
+              />
+
+              <FormField
+                label="Identifier Type"
+                as="select"
+                value={identifierType}
+                onChange={(e) => setIdentifierType(e.target.value)}
+                disabled={loading}
+                options={[
+                  { value: "imei", label: "IMEI (15 digits)" },
+                  { value: "serial", label: "Serial Number" },
+                ]}
+                required
+              />
+
+              <FormField
+                label={
+                  identifierType === "imei"
+                    ? "IMEI Number"
+                    : "Serial Number"
+                }
+                type="text"
+                placeholder={
+                  identifierType === "imei"
+                    ? "e.g., 355017123456789"
+                    : "e.g., ABC123456789"
+                }
+                value={identifierValue}
+                onChange={(e) => setIdentifierValue(e.target.value.trim())}
+                disabled={loading}
+                required
+                hint={
+                  identifierType === "imei"
+                    ? "Enter the 15-digit IMEI. Dial *#06# on your phone to find it."
+                    : "Check the device's settings or back panel."
+                }
+              />
+
+              <FormField
+                label="Acquisition Basis"
+                as="select"
+                value={acquisitionBasis}
+                onChange={(e) => setAcquisitionBasis(e.target.value)}
+                disabled={loading}
+                options={[
+                  { value: "personal_purchase", label: "Personal Purchase" },
+                  { value: "gift", label: "Gift" },
+                  { value: "inherited", label: "Inherited" },
+                  { value: "other", label: "Other" },
+                ]}
+                required
+              />
+
+              <div className="bg-blue-950/20 border border-blue-700/30 rounded p-3 text-sm text-secondary">
+                <p>
+                  ℹ️ This registration establishes your claim in AMANA. You can update device information or submit evidence later.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button type="submit" disabled={loading || !identifierValue || !acquisitionBasis}>
+                  {loading ? "Registering..." : "Register Device"}
+                </Button>
+                <Link href="/dashboard">
+                  <Button variant="outline">Cancel</Button>
+                </Link>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Help Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>How to Find Your Device Identifier</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">📱 For Phones</h4>
+              <p className="text-secondary">Dial <code className="bg-card px-2 py-1 rounded text-xs font-mono">*#06#</code> to display your IMEI.</p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">💻 For Computers</h4>
+              <p className="text-secondary">Check Settings, System Information, or look for a serial number label on the device.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}

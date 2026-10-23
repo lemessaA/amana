@@ -1,29 +1,32 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import React from "react";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", {
-  variants: {
-    variant: {
-      default: "border border-border bg-background text-foreground",
-      green: "bg-success/20 text-success border border-success/30",
-      amber: "bg-warning/20 text-warning border border-warning/30",
-      red: "bg-danger/20 text-danger border border-danger/30",
-      blue: "bg-primary-accent/20 text-primary-accent border border-primary-accent/30",
-      gray: "bg-secondary/20 text-secondary border border-secondary/30",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-  },
-});
+type BadgeVariant = "green" | "red" | "amber" | "blue" | "gray" | "default";
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: BadgeVariant;
 }
 
-export { Badge, badgeVariants };
+const variantStyles: Record<BadgeVariant, string> = {
+  green: "bg-success bg-opacity-10 text-success border border-success border-opacity-20",
+  red: "bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20",
+  amber: "bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20",
+  blue: "bg-secondary-accent bg-opacity-10 text-secondary-accent border border-secondary-accent border-opacity-20",
+  gray: "bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-20",
+  default: "bg-primary-accent bg-opacity-10 text-primary-accent border border-primary-accent border-opacity-20",
+};
+
+export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant = "default", ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        "inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium",
+        variantStyles[variant],
+        className
+      )}
+      {...props}
+    />
+  )
+);
+Badge.displayName = "Badge";
