@@ -7,6 +7,10 @@ export default function Home() {
         <a className="underline" href="/login">Login</a>
         <a className="underline" href="/register">Register</a>
         <a className="underline" href="/lookup">Device lookup</a>
+        <a className="underline" href="/devices">Register device</a>
+        <a className="underline" href="/report-theft">Report theft</a>
+        <a className="underline" href="/notifications">Notifications</a>
+        <a className="underline" href="/account">Account</a>
       </nav>
     </main>
   );

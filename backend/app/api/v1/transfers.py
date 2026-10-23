@@ -7,7 +7,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.device import DeviceClaim, Transfer
 from app.schemas.transfer import InitiateTransferRequest, TransferResponse
-from app.services.transfer_service import initiate_transfer, accept_transfer, decline_transfer, cancel_transfer
+from app.services.transfer_service import initiate_transfer, accept_transfer, decline_transfer, cancel_transfer, expire_overdue_transfers
 
 router = APIRouter(prefix="/transfers", tags=["transfers"])
 
@@ -57,3 +57,11 @@ def cancel(transfer_id: str, current: User = Depends(get_current_user), db: Sess
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"transfer_id": str(transfer.id), "status": transfer.status}
+
+
+@router.post("/expire-overdue")
+def expire_overdue(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current.role not in ("reviewer", "senior_reviewer", "system_administrator", "system_admin"):
+        raise HTTPException(status_code=403, detail="Reviewer role required")
+    count = expire_overdue_transfers(db)
+    return {"expired_count": count}

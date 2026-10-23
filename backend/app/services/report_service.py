@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.case import InvestigationCase, TheftReport
 from app.models.device import DeviceIdentifier, Restriction
 from app.services.audit_service import log_event
+from app.services.notification_service import create_notification
 from app.services.imei_service import normalize_imei
 
 
@@ -65,6 +66,7 @@ def submit_theft_report(db: Session, user_id: uuid.UUID, data) -> dict:
         db.add(report)
         db.flush()
 
+        create_notification(db, user_id, "theft_report_received")
         log_event(db, user_id, "theft_report_submitted", "theft_report", str(report.id), reason=data.allegation_category)
         if not duplicate:
             log_event(db, user_id, "investigation_opened", "investigation_case", str(case.id))

@@ -260,3 +260,19 @@ def test_account_deactivation_allowed_and_blocked():
     r = client.post("/api/v1/account/deactivate", headers=h3)
     assert r.status_code == 200, r.text
     assert r.json()["account_status"] == "deactivated"
+
+
+def test_notifications_created():
+    import uuid, random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    email = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]; h = {"Authorization": f"Bearer {token}"}
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h)
+    assert r.status_code == 200
+    r = client.post("/api/v1/theft-reports", json={"identifier_value": imei, "allegation_category": "lost", "description": "x"}, headers=h)
+    assert r.status_code == 200
+    r = client.get("/api/v1/notifications", headers=h)
+    assert r.status_code == 200
+    types = [n["type"] for n in r.json()]
+    assert "theft_report_received" in types

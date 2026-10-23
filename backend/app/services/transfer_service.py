@@ -8,6 +8,7 @@ from app.models.case import ClaimDisputeCase
 from app.models.device import DeviceAssociation, DeviceClaim, Restriction, Transfer
 from app.models.user import User
 from app.services.audit_service import log_event
+from app.services.notification_service import create_notification
 
 ELIGIBLE_BASES = {"accepted receipt-backed claim", "Acquired via AMANA-approved transfer"}
 
@@ -54,6 +55,7 @@ def initiate_transfer(db: Session, initiator_id: uuid.UUID, device_id: uuid.UUID
     db.add(transfer)
     db.commit()
     db.refresh(transfer)
+    create_notification(db, recipient_id, "transfer_pending_acceptance")
     log_event(db, initiator_id, "transfer_initiated", "transfer", str(transfer.id))
     db.commit()
     return transfer
@@ -126,6 +128,25 @@ def decline_transfer(db: Session, transfer_id: uuid.UUID, recipient_id: uuid.UUI
     log_event(db, recipient_id, "transfer_declined", "transfer", str(transfer.id))
     db.commit()
     return transfer
+
+
+def expire_overdue_transfers(db: Session) -> int:
+    now = datetime.now(timezone.utc)
+    pending = db.execute(select(Transfer).where(Transfer.status == "pending", Transfer.expires_at < now)).scalars().all()
+    count = 0
+    for transfer in pending:
+        transfer.status = "expired"
+        transfer.cancelled_at = now
+        db.add(transfer)
+        db.commit()
+        source_claim = db.get(DeviceClaim, transfer.source_claim_id)
+        if source_claim is not None:
+            create_notification(db, source_claim.claimant_user_id, "transfer_expired")
+        create_notification(db, transfer.recipient_user_id, "transfer_expired")
+        log_event(db, None, "transfer_expired", "transfer", str(transfer.id))
+        db.commit()
+        count += 1
+    return count
 
 
 def cancel_transfer(db: Session, transfer_id: uuid.UUID, initiator_id: uuid.UUID) -> Transfer:
