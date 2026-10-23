@@ -75,8 +75,13 @@ async function apiFetch<T>(
     data = null;
   }
 
+  const detail = data?.detail;
+  const normalizedDetail = Array.isArray(detail)
+    ? detail.map((d: any) => (typeof d === "string" ? d : d?.msg || JSON.stringify(d))).join(", ")
+    : (typeof detail === "object" && detail !== null ? JSON.stringify(detail) : detail);
+
   if (!res.ok) {
-    throw new APIError(res.status, data, data?.detail || `HTTP ${res.status}`);
+    throw new APIError(res.status, data, normalizedDetail || `HTTP ${res.status}`);
   }
 
   return data as T;

@@ -4,7 +4,8 @@ import uuid
 
 class InitiateTransferRequest(BaseModel):
     device_id: str
-    recipient_user_id: str
+    recipient_user_id: str | None = None
+    recipient_email: str | None = None
 
 
 class TransferResponse(BaseModel):

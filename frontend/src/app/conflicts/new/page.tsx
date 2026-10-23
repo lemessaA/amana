@@ -30,7 +30,7 @@ export default function IdentifierConflictPage() {
       setSuccess(result);
       setIdentifier("");
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Conflict submission failed");
+      setError(err?.message || "Conflict submission failed");
     } finally {
       setLoading(false);
     }

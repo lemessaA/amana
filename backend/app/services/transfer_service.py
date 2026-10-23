@@ -32,8 +32,12 @@ def initiate_transfer(db: Session, initiator_id: uuid.UUID, device_id: uuid.UUID
     assoc, claim = _active_assoc_claim(db, device_id, initiator_id)
     if assoc is None or claim is None:
         raise ValueError("no active association")
-    if claim.acquisition_basis not in ELIGIBLE_BASES:
-        raise ValueError("ineligible acquisition basis")
+    # Allow transfers for any active, owned device claim so users can move
+    # devices they registered (including receipt-free registrations).
+    # Previously this required a verified/receipt-backed basis, which blocked
+    # ordinary registered devices and made transfers unusable in practice.
+    if claim.claim_status not in ("active", None):
+        raise ValueError("claim not active")
     # blockers
     restrictions = db.execute(select(Restriction).where(Restriction.device_id == device_id, Restriction.status == "active")).scalars().all()
     if restrictions:

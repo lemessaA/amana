@@ -31,7 +31,7 @@ export default function AccountPage() {
         router.push("/login");
       }, 2000);
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Deactivation failed");
+      setError(err?.message || "Deactivation failed");
     } finally {
       setDeactivating(false);
     }

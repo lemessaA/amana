@@ -15,8 +15,20 @@ router = APIRouter(prefix="/transfers", tags=["transfers"])
 @router.post("/initiate")
 def initiate(data: InitiateTransferRequest, current: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        device_id = uuid.UUID(data.device_id)
-        recipient_id = uuid.UUID(data.recipient_user_id)
+        device_id = uuid.UUID(data.device_id.strip())
+        if data.recipient_user_id:
+            recipient_id = uuid.UUID(data.recipient_user_id.strip())
+        elif data.recipient_email:
+            from app.models.user import User
+            from sqlalchemy import select
+            recipient = db.execute(
+                select(User).where(User.email == data.recipient_email.strip())
+            ).scalar_one_or_none()
+            if recipient is None:
+                raise ValueError("recipient not found")
+            recipient_id = recipient.id
+        else:
+            raise ValueError("recipient_user_id or recipient_email required")
         transfer = initiate_transfer(db, current.id, device_id, recipient_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

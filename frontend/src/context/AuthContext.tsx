@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await getMe();
       setUser(userData);
     } catch (err: any) {
-      const message = err.data?.detail || err.message || "Login failed";
+      const message = err?.message || "Login failed";
       setError(message);
       throw err;
     } finally {
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await getMe();
       setUser(userData);
     } catch (err: any) {
-      const message = err.data?.detail || err.message || "Registration failed";
+      const message = err?.message || "Registration failed";
       setError(message);
       throw err;
     } finally {

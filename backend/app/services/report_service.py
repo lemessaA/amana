@@ -14,9 +14,11 @@ from app.services.imei_service import normalize_imei
 
 
 def submit_theft_report(db: Session, user_id: uuid.UUID, data) -> dict:
-    identifier = data.identifier_value.strip()
-    if identifier.isdigit():
-        identifier = normalize_imei(identifier)
+    cleaned = data.identifier_value.strip().replace(" ", "").replace("-", "")
+    if cleaned.isdigit():
+        identifier = cleaned
+    else:
+        identifier = data.identifier_value.strip()
     ident = db.execute(
         select(DeviceIdentifier).where(DeviceIdentifier.normalized_value == identifier)
     ).scalar_one_or_none()

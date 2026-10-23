@@ -33,7 +33,7 @@ export default function TransfersPage() {
       setDeviceId("");
       setRecipientEmail("");
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Transfer initiation failed");
+      setError(err?.message || "Transfer initiation failed");
     } finally {
       setLoading(false);
     }

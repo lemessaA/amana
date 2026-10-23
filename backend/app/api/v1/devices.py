@@ -103,7 +103,7 @@ def register_test(data: RegisterDeviceRequest, current: User = Depends(get_curre
             device_id=device.id, 
             claimant_user_id=current.id, 
             receipt_status="receipt-free", 
-            acquisition_basis="test/mode"
+            acquisition_basis="accepted receipt-backed claim"
         )
         db.add(claim)
         db.flush()

@@ -28,7 +28,7 @@ export default function LandingPage() {
       const data = await lookupDevice(identifier);
       setResult(data);
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Lookup failed");
+      setError(err?.message || "Lookup failed");
     } finally {
       setLoading(false);
     }

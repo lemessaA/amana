@@ -35,7 +35,7 @@ export default function DisputePage() {
       setIdentifier("");
       setDescription("");
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Dispute submission failed");
+      setError(err?.message || "Dispute submission failed");
     } finally {
       setLoading(false);
     }

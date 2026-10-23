@@ -11,9 +11,11 @@ from app.services.imei_service import normalize_imei
 
 
 def create_dispute(db: Session, user_id: uuid.UUID, identifier_value: str, acquisition_basis: str, description: str) -> ClaimDisputeCase:
-    value = identifier_value.strip()
-    if value.isdigit():
-        value = normalize_imei(value)
+    cleaned = identifier_value.strip().replace(" ", "").replace("-", "")
+    if cleaned.isdigit():
+        value = cleaned
+    else:
+        value = identifier_value.strip()
     ident = db.execute(select(DeviceIdentifier).where(DeviceIdentifier.normalized_value == value)).scalar_one_or_none()
     if ident is None:
         raise ValueError("unknown device")

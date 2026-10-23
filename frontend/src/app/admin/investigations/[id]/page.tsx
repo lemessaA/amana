@@ -50,7 +50,7 @@ export default function InvestigationDetailPage({ params }: { params: { id: stri
       const updated = await getInvestigation(investigation.case_id);
       setInvestigation(updated);
     } catch (err: any) {
-      setError(err.data?.detail || err.message || "Triage failed");
+      setError(err?.message || "Triage failed");
     } finally {
       setSubmitting(false);
     }

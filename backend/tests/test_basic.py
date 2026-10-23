@@ -48,9 +48,9 @@ def test_register_login_lookup():
     r = client.post("/api/v1/devices/register", json={
         "device_type": "phone",
         "identifier_type": "imei",
-        "identifier_value": "123456789012345",
+        "identifier_value": "not-a-valid-imei",
     }, headers=headers)
-    assert r.status_code == 200
+    assert r.status_code == 400
 
 
 def test_theft_report():

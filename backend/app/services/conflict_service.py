@@ -11,9 +11,11 @@ from app.services.imei_service import normalize_imei
 
 
 def submit_identifier_conflict(db: Session, user_id: uuid.UUID, identifier_value: str) -> IdentifierConflictCase:
-    value = identifier_value.strip()
-    if value.isdigit():
-        value = normalize_imei(value)
+    cleaned = identifier_value.strip().replace(" ", "").replace("-", "")
+    if cleaned.isdigit():
+        value = cleaned
+    else:
+        value = identifier_value.strip()
     existing = db.execute(
         select(DeviceIdentifier).where(DeviceIdentifier.normalized_value == value)
     ).scalar_one_or_none()
