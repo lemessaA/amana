@@ -11,6 +11,7 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  hasRole: (role: string | string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +78,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const hasRole = (role: string | string[]) => {
+    if (!user) return false;
+    const roles = Array.isArray(role) ? role : [role];
+    return roles.includes(user.role);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -87,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register: handleRegister,
         logout: handleLogout,
         isAuthenticated: !!user,
+        hasRole,
       }}
     >
       {children}
