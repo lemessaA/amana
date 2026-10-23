@@ -63,7 +63,7 @@ export const FormField = React.forwardRef<HTMLElement, FormFieldProps>(
             onChange={onChange}
             {...restProps}
           >
-            {options.map((opt) => (
+            {options.map((opt: { value: string; label: string }) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
