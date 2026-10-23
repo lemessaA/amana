@@ -1,0 +1,1290 @@
+                                                            AMANA
+                                          Secure Device Registration and
+                                      Second-Hand Transaction Safety Platform
+
+
+
+
+                                   SOFTWARE REQUIREMENTS SPECIFICATION
+
+                Version 4.0 · Consolidated implementation baseline · 20 October 2026
+
+
+
+Document field                       Value
+
+Document status                      Draft for supervisor review and approval
+
+Project type                         Academic cybersecurity and full-stack web application
+
+Implementation stack                 PostgreSQL, Express.js, React, Node.js (PERN)
+
+Primary users                        Device claimants, second-hand buyers, authorized reviewers, senior reviewers, system
+                                     administrators
+
+Languages                            English and Amharic
+
+Requirements basis                   ISO/IEC/IEEE 29148 requirements-engineering principles; not a claim of formal certification
+
+
+
+
+Purpose: define a privacy-conscious, auditable way to register device claims, review theft reports, manage disputes, and
+complete eligible AMANA-approved transfers without claiming to prove legal ownership.
+
+
+
+
+Prepared as a consolidated specification. Policy-sensitive retention periods and project authority appointments require supervisor approval before
+                                                                  production use.
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ Document control
+   Version      Date                  Summary                                                                               Status
+
+   3.0          Earlier baseline      Separated report, investigation and restriction states; initial case/account rules.   Superseded
+
+   3.1          Earlier baseline      Added permission matrix, identifiers, recipient acceptance and dispute workflow.      Superseded
+
+   3.2          Earlier baseline      Expanded operational rules, database fields, security controls and tests.             Superseded
+
+   4.0          20 Oct 2026           Consolidated formal structure and detailed workflows; resolved major rule conflicts   Current draft
+                                      and added decision/traceability controls.
+
+
+ Approval and use
+ This SRS is the implementation baseline only after supervisor approval. Any policy change must be recorded as a versioned
+ change, reviewed against affected requirements and tests, and approved before implementation.
+
+ Contents
+ • 1. Introduction and scope
+
+ • 2. Definitions and state model
+
+ • 3. Core use cases and scenarios
+
+ • 4. Business rules
+
+ • 5. Permissions and effective status
+
+ • 6. Theft report and investigation workflow
+
+ • 7. Identifier conflict workflow
+
+ • 8. Claim-dispute workflow
+
+ • 9. Evidence and receipt review
+
+ • 10. AMANA-approved transfer workflow
+
+ • 11. Functional requirements
+
+ • 12. Data requirements and integrity
+
+ • 13. Security, privacy and abuse controls
+
+ • 14. Notifications and UI
+
+ • 15. Non-functional requirements
+
+ • 16. Acceptance tests and traceability
+
+ • 17. Deployment and operations
+
+ • 18. Retention and unresolved approvals
+
+ • 19. Definition of done
+
+ • 20. Approval block and change log
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                 Page 2
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 1. Introduction and scope
+ 1.1 Purpose
+ AMANA helps people make more informed decisions about second-hand phones and computers by recording device
+ identifiers, user claims, supporting evidence, theft allegations, investigation decisions, restrictions, and AMANA-approved
+ transfer history. It provides a limited public status lookup and controlled authenticated workflows.
+
+ 1.2 Product objectives
+ • Allow a claimant to register a phone or computer using a supported identifier.
+
+ • Accept optional purchase-receipt evidence and permit later submission against the same claim.
+
+ • Distinguish a theft allegation, an active investigation, and a substantiated finding.
+
+ • Prevent eligible transfers from bypassing current restrictions, competing claims, or recipient consent.
+
+ • Retain proportionate audit history for dispute and abuse review while protecting personal information.
+
+ • Give public lookup users a cautious status result without exposing claimant or reporter identities.
+
+ 1.3 In scope
+ Account registration, authentication, password recovery and deactivation; device and identifier registration; receipt submission
+ and review; theft reporting and investigation; claim disputes; identifier-conflict review; association release; AMANA-approved
+ transfer; public lookup; audit history; notifications; rate limiting; English and Amharic UI; and security tests.
+
+ 1.4 Out of scope
+ GPS tracking, remote locking, device recovery, payments, a marketplace, blockchain, AI-based fraud detection, automated
+ vulnerability scanning, and integrations with police, Fayda, telecom operators, manufacturers, or government systems. AMANA
+ does not guarantee legal ownership, genuine hardware identity, or that a device has never been stolen.
+
+ 1.5 Standards note
+ The document follows requirements-engineering practices associated with ISO/IEC/IEEE 29148. It does not claim formal
+ certification or legal compliance. Applicable privacy and legal obligations must be reviewed before production deployment.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                    Page 3
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 2. Definitions and state model
+   Term                                    Normative definition
+
+   Device                                  A physical phone or computer represented by one internal AMANA device record.
+
+   Device identifier                       An IMEI or manufacturer-assigned computer serial number associated with a device record.
+
+   Claim                                   A user's recorded assertion of association with a device; it is not by itself proof of legal ownership.
+
+   Claimant                                The user linked to a device through an active claim/association.
+
+   Affected claimant                       The claimant whose association or permissions are directly affected by a case. A reporter is not
+                                           automatically the affected claimant.
+
+   Receipt status                          One of receipt-free, receipt-pending, receipt-accepted, or receipt-rejected.
+
+   Acquisition basis                       The reason the claim was created, stored separately from receipt status: accepted receipt-backed
+                                           claim, completed AMANA-approved transfer, or other/unverified basis.
+
+   Theft report                            An allegation that a device may be stolen.
+
+   Investigation                           A formal case created after a report passes screening.
+
+   Provisional restriction                 A temporary restriction applied when a report passes screening, subject to reviewer triage within 72
+                                           hours.
+
+   Active theft restriction                A restriction supported by a documented substantiated finding.
+
+   Inconclusive restriction                A restriction retained after an inconclusive finding with a recorded reason and review date.
+
+   Claim-dispute case                      A process to assess competing claims without creating a second active association.
+
+   Identifier-conflict case                A review of a newly submitted identifier that conflicts with an existing record; the new submission is
+                                           held, not the existing claimant by default.
+
+   Association release                     Ending a claimant's active association. It does not prove sale, transfer legal title, delete the device,
+                                           or erase history.
+
+   AMANA-approved transfer                 A transfer completed through the authenticated workflow after eligibility checks and recipient
+                                           acceptance.
+
+   Account deactivation                    Disabling ordinary login/use while retaining records required for active cases, security, audit, and
+                                           approved retention rules.
+
+   Reviewer / senior reviewer              Authorized case decision-maker / reviewer permitted to approve extensions and independent
+                                           reconsiderations.
+
+   System administrator                    Operator of technical configuration and access. Administrative access alone does not authorize case
+                                           decisions.
+
+
+ 2.1 Separate state dimensions
+ The system shall not collapse these independent dimensions into one status: (1) receipt evidence status, (2) acquisition basis,
+ (3) claim status, (4) association status, (5) report/investigation status, (6) restriction status, (7) transfer status, and (8) account
+ status.
+
+ 2.2 Effective status
+ The device's effective public status is derived at request time from current restrictions and cases using the precedence in
+ Section 5. It is not independently editable. Historical reports alone do not create a current restriction.
+
+ 2.3 Normative wording
+ “Shall” denotes a mandatory requirement. “May” denotes permitted behavior. “Should” denotes a recommendation that
+ requires a documented exception if not followed.
+
+
+ 3. Core use cases and scenarios
+ UC-01: Register a device
+ A registered user submits an IMEI or computer serial number and creates a claim. Receipt evidence is optional. The system
+ validates syntax and uniqueness, checks current restrictions, records the acquisition basis and receipt status separately, and
+ does not represent registration as proof of ownership.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                           Page 4
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ UC-02: Submit and review receipt evidence
+ A claimant uploads a supported receipt file during registration or later. Evidence remains pending until an authorized reviewer
+ accepts, rejects, or requests correction with a recorded reason. Acceptance does not remove unrelated restrictions or
+ authorize past transfers.
+
+ UC-03: Report possible theft
+ An authenticated user submits a report. Screening checks required fields, identifier syntax, duplicate patterns and rate limits. A
+ passing report atomically creates or links an investigation and applies a provisional restriction. A reviewer triages within 72
+ hours.
+
+ UC-04: Resolve competing claims
+ A second claimant cannot create a second active association. The request is held and routed to a claim-dispute case. The
+ current claimant may voluntarily release their association, but release does not clear independent restrictions or prove the new
+ claimant's ownership.
+
+ UC-05: Transfer a device
+ An eligible claimant initiates a transfer to a recipient. The recipient must explicitly accept within 72 hours. The server rechecks
+ eligibility and restrictions immediately before transactional completion. Decline, cancellation or expiry leaves the source
+ association unchanged.
+
+ UC-06: Look up a device
+ A user enters a supported identifier and receives only a generic effective status and explanation. The result must not reveal
+ whether a named person registered the device, who reported it, or what evidence reviewers saw.
+
+ Scenario 1: Receipt accepted, no current blocker
+ The claim may initiate an AMANA-approved transfer if its acquisition basis is eligible, the association is active, no restriction or
+ dispute blocks the operation, and the recipient accepts. Association release is also allowed when no hold applies.
+
+ Scenario 2: No accepted receipt, no current blocker
+ A claim with no accepted receipt and no completed AMANA-transfer basis cannot initiate an AMANA-approved transfer. The
+ claimant may release the association if no blocking condition applies. Release is not a verified sale or transfer. A later claimant
+ must create a new claim and cannot inherit transfer eligibility merely because the prior claimant released.
+
+ Scenario 3: Theft report and receipt-backed claim
+ A passing report creates or joins the active investigation and applies a provisional restriction. Triage is due within 72 hours.
+ Investigation deadline: 720 hours from opening, UTC. One extension of up to 360 hours may be approved, with an absolute
+ cap of 1,080 hours from opening.
+
+ Scenario 4: Theft report and no accepted receipt, or no current claimant
+ The same deadlines and review controls apply. The case records the evidence/acquisition state at opening for audit and
+ decision context. Later evidence is considered but does not silently reset the deadline.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                      Page 5
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 4. Business rules
+   ID                Rule
+
+   BR-001            A historical report alone does not block an operation. Current restrictions and active cases govern permissions.
+
+   BR-002            Claim evidence status, acquisition basis, association status, case status, restriction status, transfer status and account
+                     status shall remain separate.
+
+   BR-003            Receipt acceptance requires reviewer assessment; it is never automatic.
+
+   BR-004            A claim is eligible for transfer only when its acquisition basis is accepted receipt-backed claim or completed
+                     AMANA-approved transfer, and all other checks pass.
+
+   BR-005            A claim without an eligible acquisition basis cannot initiate an AMANA-approved transfer. Later evidence may be submitted
+                     against the same claim.
+
+   BR-006            Association release is not a transfer, does not delete the device or history, and does not prove a private sale.
+
+   BR-007            At most one active claimant association may exist per device.
+
+   BR-008            Every new theft investigation has a 720-hour deadline measured from its opening timestamp in UTC.
+
+   BR-009            One extension of at most 360 hours may be approved by a senior reviewer with a recorded reason. The total cap is 1,080
+                     hours from opening.
+
+   BR-010            Cases approaching the cap shall be escalated. At the cap, a designated case authority must take ownership and record a
+                     decision or a specific next action and review date; no automatic theft finding is allowed.
+
+   BR-011            A provisional restriction must be triaged by an authorized reviewer within 72 hours: confirm continuation, dismiss a clearly
+                     baseless report with reason, or escalate. Failure is escalated to the senior queue.
+
+   BR-012            Only one active theft investigation per device is permitted. Additional reports link to it and do not reset the deadline.
+
+   BR-013            A closed case may be reopened only after materially new information is accepted for review; prior decisions remain in
+                     history.
+
+   BR-014            Reconsideration reviews an existing decision. Reopening formally reactivates a closed case based on materially new
+                     information.
+
+   BR-015            An inconclusive outcome may retain a restriction only with documented necessity, a named accountable reviewer, a review
+                     date no more than 30 days away, and a reconsideration route.
+
+   BR-016            A user may report their own device. The user retains case access and communication rights; account deactivation is
+                     blocked while they are the affected claimant in an active investigation.
+
+   BR-017            Reporting another person's device alone does not block the reporter's account deactivation.
+
+   BR-018            A pending transfer expires after 72 hours unless completed; the initiator may cancel earlier. Cancellation/expiry releases
+                     only that transfer's hold.
+
+   BR-019            An active claim dispute blocks AMANA-approved transfer but permits the current claimant to voluntarily release their
+                     association. Independent restrictions remain.
+
+   BR-020            A new conflicting identifier submission is held for review. The existing claimant is not restricted solely because of that
+                     submission.
+
+   BR-021            Account deactivation is blocked while the user has an affected active investigation, active claim dispute involving their
+                     association, a pending transfer they initiated, or a pending reconsideration request.
+
+   BR-022            If no blocking condition exists, deactivation ends an unrestricted active association and retains its historical record.
+
+   BR-023            After a case closes, a user may deactivate even if a restriction remains. The restricted association is retained but must
+                     have a defined resolution path, accountable authority, review date, and appeal/reconsideration route.
+
+   BR-024            If a restricted device has no active claimant, a new user may submit a claim for review; registration does not clear the
+                     restriction or permit transfer/release.
+
+   BR-025            A transfer requires explicit recipient acceptance and a final server-side eligibility check.
+
+   BR-026            Public lookup must not reveal whether a specific person has registered or claimed a device, or disclose identities, contact
+                     details, private evidence or reviewer notes.
+
+   BR-027            Material claim, association, report, case, restriction, identifier, transfer, reviewer, reconsideration and deactivation changes
+                     shall be audit logged.
+
+   BR-028            A reviewer shall not decide a case involving their own device, claim, report, close relationship or declared personal interest.
+                     System checks plus reviewer self-declaration are required.
+
+   BR-029            An unresolved identifier-conflict or dispute hold applies to the new submission/disputed transfer as defined in the relevant
+                     workflow; it shall not silently freeze an existing claimant.
+
+   BR-030            Public lookup results are informational and are not a legal ownership certificate or guarantee that no theft report exists
+                     outside AMANA.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                             Page 6
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 5. Permissions and effective public status
+ 5.1 Closed list of blocking conditions
+ Only the following recorded conditions may block operations: (1) active theft investigation with provisional restriction; (2) active
+ theft restriction from a substantiated finding; (3) retained inconclusive restriction; (4) active claim dispute, transfer-blocking only
+ while allowing voluntary release; (5) unresolved identifier conflict affecting the new submission; and (6) pending transfer, which
+ blocks release/deactivation for the initiating source association until cancellation, expiry or completion. No generic unrecorded
+ “other blocking condition” is permitted.
+
+ 5.2 Permission matrix
+   Condition                    Transfer                Release                 Deactivate               New claim                 Public label
+
+   No blocker; eligible basis   Allowed after           Allowed                 Allowed; ends            Only if no active         No active theft
+                                recipient acceptance                            unrestricted             association               restriction found
+                                                                                association
+
+   No blocker; ineligible       Blocked                 Allowed                 Allowed if no other      Only if no active         No active theft
+   basis                                                                        hold                     association               restriction found
+
+   Receipt pending/rejected;    Blocked                 Allowed                 Allowed if no active     Existing claim may        No active theft
+   no other blocker                                                             case/transfer            receive later evidence    restriction found
+
+   Active theft investigation   Blocked                 Blocked for affected    Blocked for affected     If no claimant, may       Under review
+                                                        association             claimant                 record restricted
+                                                                                                         claim
+
+   Active theft restriction     Blocked                 Blocked until           Allowed after case       May submit for review     Active theft restriction
+                                                        authorized              closure; restricted      if no active
+                                                        lift/reassignment       association retained     association; remains
+                                                                                                         restricted
+
+   Inconclusive restriction     Blocked                 Blocked until           Allowed after case       May submit for review     Restricted pending
+   retained                                             authorized              closure; association     if no active              further review
+                                                        lift/reassignment       retained                 association; remains
+                                                                                                         restricted
+
+   Active claim dispute         Blocked                 Allowed; ends           Blocked while dispute    Linked to dispute; no     Restricted pending
+                                                        association dispute     active unless            second active             review
+                                                        only                    association released     association
+                                                                                and no other hold
+
+   New identifier conflict      Blocked for new         Existing claimant may   Existing claimant may    New submission held       Restricted pending
+                                conflicting             release if no other     deactivate if no other                             review
+                                submission              hold                    hold
+
+   Pending transfer             Pending until           Blocked for source      Blocked for initiator    No second active          Based on independent
+                                accepted and checks     association until       until cancel/expiry      association               current status
+                                pass                    cancel/expiry
+
+   Deactivated, unrestricted    Unavailable to          Already ended           Already deactivated      Allowed only if no        Based on current
+   association ended            inactive account                                                         active                    restrictions
+                                                                                                         association/restriction
+
+   Deactivated, restricted      Blocked                 Blocked until           Already deactivated      May submit for review     Based on current
+   association retained                                 authorized resolution                            but cannot replace        restriction
+                                                                                                         retained association
+
+
+ 5.3 Public status precedence
+ The effective public status shall use this order: (1) Under review for an active theft investigation; (2) Active theft restriction; (3)
+ Restricted pending further review for a retained inconclusive restriction; (4) Restricted pending review for dispute or
+ identifier-conflict restrictions; (5) No active theft restriction found. If more than one condition applies, the highest-precedence
+ label is returned. No public label may reveal claimant identity or whether a named person has registered the device.
+
+ 5.4 Server-side enforcement
+ Every protected operation must re-evaluate current account, association, acquisition-basis, transfer, case and restriction state
+ on the server at execution time. UI state is not authoritative. State-changing operations must be transactionally protected
+ against concurrent requests.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                                   Page 7
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 6. Theft report and investigation workflow
+ 6.1 Minimum report fields
+ Required: authenticated reporter; identifier type and value; allegation category; description; accuracy declaration. Incident
+ date/period is required if known and otherwise may be omitted with a reason. Supporting evidence is optional. A receipt is not
+ mandatory to report suspected theft.
+
+ 6.2 Screening and triage
+ Screening checks authentication, required fields, identifier syntax, active case duplication, materially identical reports without
+ new information, and rate limits. Missing required fields or invalid identifier syntax returns the submission for correction and
+ does not activate a restriction. A duplicate report links to the existing case. A passing report atomically creates or links the
+ active case, applies a provisional restriction, and records the audit event. Reviewer triage is due within 72 hours.
+
+ 6.3 Deadline and escalation
+ • Initial deadline: 720 hours from case opening, UTC.
+
+ • One extension: up to 360 hours, approved by a senior reviewer with reason and audit record.
+
+ • Absolute cap: 1,080 hours from the original opening timestamp; extension does not reset the cap.
+
+ • Warning: 72 hours before the current deadline.
+
+ • At the cap: escalate to senior reviewer and designated project case authority. No automatic outcome.
+
+ If no final decision exists at the cap, the designated authority must accept assignment, record why the case remains
+ unresolved, specify the next review action, and set a review date no more than 30 days away. Every continuing restriction must
+ have a named accountable authority and review date. This is an exception-controlled continuing review, not an automatic
+ finding of theft.
+
+ 6.4 Decision criteria
+ A finding must be based on the totality of documented evidence, identifier consistency, chronology, source reliability, material
+ contradictions, and the claimant/reporter's opportunity to respond. A receipt is relevant but not conclusive by itself. Reviewers
+ must distinguish:
+
+ • Substantiated: documented evidence provides a reasonable, recorded basis to conclude the theft allegation is supported
+ under the project's approved review standard.
+
+ • Unsubstantiated: evidence does not sufficiently support the allegation.
+
+ • Invalid: the report is malformed, materially false on verifiable facts, outside scope, or otherwise ineligible; record a specific
+ reason. An unsubstantiated report is not automatically malicious.
+
+ • Inconclusive: available evidence does not support a reliable determination. Restriction may be retained only under BR-015.
+
+ 6.5 Outcome-to-restriction mapping
+   Outcome               Restriction effect                                             Association/permissions
+
+   Substantiated         Apply/retain active theft restriction; set next review and     Transfer/release blocked until authorized lift or
+                         accountable authority.                                         reassignment. Account deactivation allowed after case
+                                                                                        closure, subject to other holds.
+
+   Unsubstantiated       Remove only the provisional restriction attributable to this   Normal permissions resume unless another
+                         allegation.                                                    independent blocker applies.
+
+   Invalid               Remove only the provisional restriction attributable to this   Normal permissions resume unless another
+                         report.                                                        independent blocker applies.
+
+   Inconclusive          Close investigation; retain restriction only with documented   Transfer/release remain blocked while retained
+                         necessity and review date ≤30 days.                            restriction is active; reconsideration available.
+
+   Reopened              Record new opening timestamp, reason and new 720-hour          A new provisional restriction applies only if explicitly
+                         deadline; prior history remains.                               authorized in the reopening decision.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                        Page 8
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 6.6 Reconsideration and reopening
+ An affected user may request reconsideration within 30 calendar days of a decision, stating the decision, grounds and
+ available supporting evidence. A senior reviewer who did not make the original decision shall decide within 10 calendar days.
+ One reconsideration request per decision is allowed, unless materially new evidence supports a separate reopening request.
+ Deactivation is blocked while reconsideration is pending. A deactivated user must have secure limited case access or identity
+ recovery to submit the request. Reconsideration reviews the existing decision; reopening reactivates a closed case only after
+ materially new information is accepted. Prior decisions and audit events remain.
+
+ 6.7 Reviewer assignment and independence
+ New cases enter a queue and are assigned to the next available qualified reviewer using round-robin or least-open-case
+ allocation. The system must exclude reviewers with system-detectable conflicts (their own user/device/claim/report) and
+ require a recorded self-declaration of no other personal interest. A reviewer must recuse if a conflict emerges. Escalations go
+ to the senior-reviewer queue; system administrators cannot decide cases solely by virtue of administrator role.
+
+
+ 7. Identifier-conflict workflow
+ The system normalizes and validates the submitted identifier and checks for an existing association. A conflict holds the new
+ submission, not the existing claimant by default. The existing claimant's transfer, release and deactivation permissions do not
+ change solely because a new submission conflicts.
+
+ • Initial deadline: 15 calendar days (360 hours) from opening, UTC.
+
+ • One extension: up to 7 calendar days (168 hours), approved by a senior reviewer with reason.
+
+ • Maximum: 22 calendar days (528 hours). Warning 72 hours before current deadline.
+
+ The reviewer records whether the submission is a duplicate, data-entry error, legitimate additional identifier, or unresolved
+ conflict. Confirmed invalid submissions are rejected without changing the existing record. An unresolved conflict at the deadline
+ is escalated and remains attached only to the new submission pending an accountable next action and review date no more
+ than 30 days away. Device records shall not be merged solely because identifiers look similar. An existing claimant may be
+ restricted only by an independent qualifying case or documented authorized decision.
+
+
+ 8. Claim-dispute workflow
+ A competing claimant submits the device identifier, acquisition basis, description and available supporting evidence. Screening
+ checks required fields, rate limits, active claims and cases. A second active association is never created. A passing request
+ creates a dispute case that blocks AMANA-approved transfer but permits voluntary release by the current claimant.
+
+ Voluntary release ends the association dispute because the previous active association no longer needs to be contested. It
+ does not prove that the new claimant owns the device and does not remove an independent theft restriction or unresolved
+ identifier conflict.
+
+ • Initial deadline: 15 calendar days (360 hours), UTC.
+
+ • One extension: up to 7 calendar days (168 hours), approved by a senior reviewer.
+
+ • Maximum: 22 calendar days (528 hours), with warning 72 hours before deadline.
+
+ If the dispute reaches its cap unresolved, it is escalated to the senior reviewer and designated case authority. The authority
+ must record a decision or accountable next action and review date no more than 30 days away. The outcome records the basis
+ for ending or retaining an association. A dispute decision does not establish legal ownership.
+
+
+ 9. Evidence and receipt review
+ Evidence files are private by default and are accessible only to the submitting user where appropriate, assigned reviewers,
+ authorized senior reviewers and technical roles with a documented operational need. Evidence URLs must not be public or
+ permanently guessable.
+
+ • Supported formats: PDF, JPEG and PNG only.
+
+ • Maximum file size: 10 MB per file; maximum five files per submission.
+
+ • Validate extension, declared MIME type, file signature, size and safe generated storage name. Store outside the public web
+ root or in private object storage.
+
+
+
+Draft for supervisor review | Confidential project document                                                                  Page 9
+AMANA | Software Requirements Specification v4.0
+
+
+
+ • Receipt evidence may be submitted at registration or later against the same claim.
+
+ • Receipt review target: within five calendar days of submission; overdue items escalate to the senior queue. Pending
+ evidence is never treated as accepted.
+
+ • Reviewer outcome: accept, reject, or request correction, with a reason and audit event.
+
+ Receipt acceptance changes evidence status through a new review event and does not retroactively authorize transfers or
+ remove independent restrictions. A receipt does not conclusively prove legal ownership.
+
+
+ 10. AMANA-approved transfer workflow
+ • Source claimant initiates a transfer; server verifies eligible acquisition basis and current permissions.
+
+ • System records a pending transfer with a 72-hour expiry and sends an in-app notification; email is sent when configured.
+
+ • Recipient must explicitly accept within 72 hours. Recipient may decline; source claimant may cancel before completion.
+
+ • On acceptance, the server rechecks the source association, acquisition basis, active restrictions, cases, account state and
+ recipient eligibility.
+
+ • Completion changes association/claim state in one database transaction and records the recipient's acquisition basis as
+ “Acquired via AMANA-approved transfer.”
+
+ • If declined, cancelled, or expired, source association remains unchanged and only the pending-transfer hold is released.
+
+ • Every initiation, acceptance, decline, cancellation, expiry and completion is audit logged.
+
+ An AMANA-approved transfer is a platform-recorded handover, not a payment service or a legal ownership adjudication. A
+ recipient may later resell through AMANA if the current eligibility checks pass.
+
+
+ 11. Functional requirements
+ 11.1 Account management
+   ID                    Requirement
+
+   FR-ACC-001            The system shall support account registration, authentication, logout and secure password recovery.
+
+   FR-ACC-002            The system shall enforce authorization on every protected server operation.
+
+   FR-ACC-003            The system shall support account deactivation according to the permission matrix.
+
+   FR-ACC-004            Deactivation shall not cascade-delete required device, claim, case, decision, transfer or audit records.
+
+   FR-ACC-005            Deactivation shall be blocked for the holds specified in BR-021.
+
+   FR-ACC-006            A deactivated user shall have a secure limited-access or identity-recovery route for pending case requests.
+
+
+ 11.2 Device, identifiers and claims
+   ID                    Requirement
+
+   FR-DEV-001            The system shall support phone IMEIs and manufacturer-assigned computer serial numbers.
+
+   FR-DEV-002            An IMEI shall contain exactly 15 decimal digits and pass a Luhn checksum before syntactic acceptance.
+
+   FR-DEV-003            A dual-SIM phone may have multiple IMEIs linked to one device record.
+
+   FR-DEV-004            Computer serial numbers shall retain identifier type and normalized representation; no universal manufacturer format
+                         shall be assumed.
+
+   FR-DEV-005            Syntax validation shall not be described as proof of genuine identity or ownership.
+
+   FR-DEV-006            Conflicting or duplicate identifiers shall follow Section 7.
+
+   FR-DEV-007            Receipt evidence shall be accepted during registration or later against an existing claim.
+
+   FR-DEV-008            Receipt status shall distinguish receipt-free, receipt-pending, receipt-accepted and receipt-rejected.
+
+   FR-DEV-009            Later receipt acceptance shall be recorded and shall not authorize earlier transfers retroactively.
+
+   FR-DEV-010            Acquisition basis shall be stored separately from receipt status.
+
+   FR-DEV-011            The system shall prevent more than one active claimant association per device at database level.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                     Page 10
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 11.3 Evidence review
+   ID                    Requirement
+
+   FR-EVD-001            Every evidence submission shall enter a reviewer queue.
+
+   FR-EVD-002            A reviewer shall accept, reject or request correction with a recorded reason.
+
+   FR-EVD-003            Receipt review shall be completed within five calendar days or escalated.
+
+   FR-EVD-004            Pending evidence shall not be treated as accepted.
+
+   FR-EVD-005            Evidence decisions shall not automatically lift independent restrictions.
+
+   FR-EVD-006            Evidence review history shall preserve prior states and decisions.
+
+
+ 11.4 Reports and investigations
+   ID                    Requirement
+
+   FR-INV-001            A passing theft report shall create an investigation or link to the active investigation for that device.
+
+   FR-INV-002            Report creation/linking, provisional restriction and audit event shall be atomic.
+
+   FR-INV-003            Every new investigation shall receive a 720-hour UTC deadline.
+
+   FR-INV-004            A reviewer shall triage provisional restrictions within 72 hours.
+
+   FR-INV-005            The system shall warn the assigned reviewer 72 hours before the current deadline.
+
+   FR-INV-006            One extension of up to 360 hours may be approved by a senior reviewer with a reason.
+
+   FR-INV-007            A case reaching 1,080 hours without final decision shall be escalated to the designated authority.
+
+   FR-INV-008            A final outcome shall be substantiated, unsubstantiated, invalid or inconclusive.
+
+   FR-INV-009            Unsubstantiated or invalid outcomes shall remove only their own provisional restriction.
+
+   FR-INV-010            An inconclusive outcome may retain a restriction only with documented reason and review date no more than 30 days
+                         away.
+
+   FR-INV-011            Reopening shall require materially new information accepted for review.
+
+   FR-INV-012            Reopening shall record a new opening time, deadline, reason and restriction decision without erasing prior history.
+
+   FR-INV-013            The system shall enforce reviewer independence, recusal and senior escalation.
+
+
+ 11.5 Disputes
+   ID                    Requirement
+
+   FR-DSP-001            A competing claim shall create a dispute case rather than a second active association.
+
+   FR-DSP-002            An active dispute shall block transfer but allow voluntary association release.
+
+   FR-DSP-003            Voluntary release shall end the association dispute but not independent restrictions.
+
+   FR-DSP-004            A dispute shall have a 360-hour initial deadline and at most one 168-hour extension.
+
+   FR-DSP-005            Overdue disputes shall be escalated and have an accountable next action/review date.
+
+   FR-DSP-006            Dispute outcomes and association changes shall be audit logged.
+
+
+ 11.6 Transfers
+   ID                    Requirement
+
+   FR-TRN-001            A transfer shall require an eligible acquisition basis and no current transfer-blocking condition.
+
+   FR-TRN-002            The recipient shall explicitly accept within 72 hours.
+
+   FR-TRN-003            The initiator may cancel before completion.
+
+   FR-TRN-004            A transfer shall expire after 72 hours without acceptance.
+
+   FR-TRN-005            The server shall recheck all eligibility and restriction conditions immediately before completion.
+
+   FR-TRN-006            A completed transfer shall record acquisition basis as “Acquired via AMANA-approved transfer.”
+
+   FR-TRN-007            Transfer completion and association changes shall be transactional.
+
+   FR-TRN-008            A recipient who acquired via AMANA may later request another transfer if all current checks pass.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                    Page 11
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 11.7 Lookup
+   ID                       Requirement
+
+   FR-LKP-001               Public lookup shall return only an effective status and generic explanatory text.
+
+   FR-LKP-002               Public lookup shall not reveal whether a named person has registered or claimed a device.
+
+   FR-LKP-003               Public lookup shall not disclose claimant/reporter identity, contact details, evidence or reviewer notes.
+
+   FR-LKP-004               Status precedence shall follow Section 5.3.
+
+   FR-LKP-005               Dispute and identifier conflict shall use the generic “Restricted pending review” label.
+
+   FR-LKP-006               “No active theft restriction found” shall not imply safety, legal ownership, or absence of unreported theft.
+
+
+
+ 12. Data requirements and integrity
+ 12.1 Minimum entities and fields
+ The following are minimum logical fields. Implementation may add fields but shall preserve the meanings and relationships.
+ Use UUIDs or non-guessable internal IDs where appropriate; public endpoints must not expose sequential internal IDs.
+
+   Entity                               Minimum fields
+
+   User                                 id; email (unique normalized); password_hash; role; account_status; created_at; deactivated_at; locale;
+                                        email_verified_at
+
+   Device                               id; device_type; record_status; created_at; updated_at
+
+   DeviceIdentifier                     id; device_id; identifier_type; normalized_value; review_status; created_at; ended_at
+
+   DeviceClaim                          id; device_id; claimant_user_id; receipt_status; acquisition_basis; claim_status; created_at; ended_at
+
+   DeviceAssociation                    id; device_id; claim_id; user_id; association_status; start_at; end_at; end_reason
+
+   Evidence                             id; claim_id nullable; case_id nullable; submitted_by; private_storage_key; mime_type; file_size;
+                                        checksum; review_status; created_at
+
+   EvidenceReview                       id; evidence_id; reviewer_id; decision; reason; created_at
+
+   TheftReport                          id; device_id; reporter_user_id; allegation_category; description; incident_period nullable;
+                                        screening_status; case_id; created_at
+
+   InvestigationCase                    id; device_id; case_status; assigned_reviewer_id; opened_at; deadline_at; extension_deadline_at;
+                                        closed_at; outcome; outcome_reason; next_review_at; accountable_authority_id
+
+   ClaimDisputeCase                     id; device_id; requester_user_id; case_status; assigned_reviewer_id; opened_at; deadline_at;
+                                        extension_deadline_at; closed_at; outcome; outcome_reason; next_review_at; accountable_authority_id
+
+   IdentifierConflictCase               id; device_identifier_id; submitted_by; existing_device_id; case_status; assigned_reviewer_id; opened_at;
+                                        deadline_at; extension_deadline_at; outcome; outcome_reason; next_review_at
+
+   Restriction                          id; device_id; restriction_type; source_case_type; source_case_id; reason; status; started_at; ended_at;
+                                        next_review_at; accountable_authority_id
+
+   Transfer                             id; device_id; source_claim_id; recipient_user_id; status; acquisition_basis; initiated_at; expires_at;
+                                        accepted_at; completed_at; cancelled_at
+
+   ReconsiderationRequest               id; case_type; case_id; requester_user_id; reason; status; assigned_reviewer_id; submitted_at;
+                                        decision_at; outcome
+
+   AuditEvent                           id; actor_user_id nullable; action; target_type; target_id; case_type nullable; case_id nullable; created_at;
+                                        reason; correlation_id
+
+   Notification                         id; recipient_user_id; channel; type; delivery_status; created_at; sent_at; retry_count
+
+
+ 12.2 Required relationships and constraints
+ • At most one active DeviceAssociation per device, enforced by a database uniqueness/partial-index strategy and transaction
+ logic.
+
+ • At most one active InvestigationCase per device, enforced by a database constraint or equivalent serializable locking
+ strategy.
+
+ • Identifier uniqueness is enforced after normalization; additional identifiers on one device are allowed only through the defined
+ reviewed association flow.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                             Page 12
+AMANA | Software Requirements Specification v4.0
+
+
+
+ • A completed transfer must atomically end the source association and establish the recipient association, preserving the
+ one-active-association invariant.
+
+ • A transfer completion transaction must lock/recheck the device and all current blocking restrictions before committing.
+
+ • Report screening, case creation/linking, provisional restriction creation and audit event must commit or roll back together.
+
+ • Effective public status is derived from current case/restriction records and precedence; it is not an independently editable
+ field.
+
+ • Historical claims, associations, reports, outcomes and transfers are not overwritten to erase prior states.
+
+ • Account deactivation must not cascade-delete records required for cases, security, audit or approved retention.
+
+ • Every restriction must have a source or documented authority, start time, reason, accountable owner and next review date if
+ it continues.
+
+ 12.3 Transaction and concurrency behavior
+ For any operation that could race (transfer completion, association release, case opening, restriction change, new claim), the
+ backend must use database transactions and row-level locking or an equivalent isolation strategy. The database remains the
+ final guard against duplicate active associations. Failed concurrent operations must return a safe conflict response and create
+ an audit event where appropriate.
+
+
+ 13. Security, privacy and abuse controls
+   ID                    Requirement
+
+   SEC-001               Use a modern password-hashing algorithm supported by the selected stack; never store plaintext passwords.
+
+   SEC-002               Enforce server-side authorization for every protected operation and object; prevent IDOR/BOLA.
+
+   SEC-003               Use parameterized queries or safe ORM/query-builder operations.
+
+   SEC-004               Protect cookie-authenticated state-changing requests with CSRF controls and secure cookie settings.
+
+   SEC-005               Render user-controlled text safely and apply context-appropriate output encoding to prevent XSS.
+
+   SEC-006               Accept PDF, JPEG and PNG only; max 10 MB per file and five files per submission.
+
+   SEC-007               Validate file extension, MIME declaration, signature and size; use generated names and private storage outside public
+                         web root.
+
+   SEC-008               Initial rate limits: login 10 failed attempts/account/15 min; recovery 5 requests/account/hour; lookup 60/IP/min and
+                         20/account/min; theft reports 5/user/rolling 24 h; disputes 3/user/rolling 24 h; reconsideration 3/user/rolling 24 h;
+                         evidence upload 10 attempts/user/hour.
+
+   SEC-009               Rate-limit events shall be logged and temporarily rejected; rate limits alone shall not label a user malicious.
+
+   SEC-010               Reviewer triage of provisional restrictions is due within 72 hours.
+
+   SEC-011               Repeated materially identical reports without new information shall link to an active case or be rejected as duplicates
+                         with reason.
+
+   SEC-012               An unsubstantiated report shall not automatically be classified as malicious.
+
+   SEC-013               Audit events shall be protected against ordinary user modification/deletion; privileged tampering attempts must be
+                         logged.
+
+   SEC-014               Reviewer assignment, self-declared conflicts, recusal, decisions, extensions, restriction changes and escalations shall
+                         be logged.
+
+   SEC-015               Production secrets shall not be committed to source control or exposed in client bundles.
+
+   SEC-016               Production deployment shall use HTTPS, restricted database access, protected backups, documented dependency
+                         updates and appropriate secure cookies.
+
+   SEC-017               Public responses shall not expose stack traces, secrets, private evidence or internal database details.
+
+   SEC-018               Public lookup shall resist enumeration through rate limits, uniform response structure, non-disclosing error messages
+                         and monitoring.
+
+   SEC-019               Case and evidence access shall follow least privilege; all access to private evidence shall be authorized and auditable.
+
+   SEC-020               Security logs shall avoid storing passwords, session tokens, full private evidence, or unnecessary personal data.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                         Page 13
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 14. Notifications and UI
+ 14.1 Notification channels
+ The initial release shall support in-app notifications and email when a valid address and delivery configuration exist. Required
+ events: report receipt, case opening/closure, triage outcome, deadline warning, extension decision, evidence decision, dispute
+ outcome, transfer accepted/declined/cancelled/expired/completed, and reconsideration decision. Email must contain minimal
+ information and no private evidence attachments; the authenticated case view is authoritative.
+
+ 14.2 User interface requirements
+   ID                    Requirement
+
+   UI-001                Public lookup explains status meaning and limitations.
+
+   UI-002                Registration distinguishes receipt status from acquisition basis.
+
+   UI-003                Transfer UI displays pending, accepted, declined, cancelled, expired and completed states.
+
+   UI-004                Reviewer UI displays deadline, remaining time, assignment, evidence, conflict declaration and required next action.
+
+   UI-005                Warnings appear 72 hours before current investigation/dispute/identifier-conflict deadlines.
+
+   UI-006                Authenticated users can submit later evidence and reconsideration requests.
+
+   UI-007                Core workflows support English and Amharic.
+
+   UI-008                Dispute and identifier conflict use the generic “Restricted pending review” public label.
+
+   UI-009                UI must not imply legal ownership verification or guaranteed device legitimacy.
+
+   UI-010                Core workflows work on mobile and desktop and minimize unnecessary network requests and large assets.
+
+   UI-011                Users can see case status and the next permitted action without exposing private reviewer notes.
+
+
+
+ 15. Non-functional requirements
+   ID                    Measurable requirement
+
+   NFR-001               Under 50 concurrent test users, 95% of ordinary API requests complete within 2 seconds, excluding file upload and
+                         email delivery.
+
+   NFR-002               Under the same conditions, 95% of public lookups complete within 2 seconds.
+
+   NFR-003               Target 99% availability during scheduled academic demonstration windows, excluding announced maintenance; this is
+                         a demo target, not a production SLA.
+
+   NFR-004               Critical state changes are transactional and auditable.
+
+   NFR-005               Core workflows support English and Amharic, including validation and error messages.
+
+   NFR-006               The app minimizes unnecessary network requests and large assets for constrained connectivity.
+
+   NFR-007               All mandatory security, permission, deadline, upload, privacy and concurrency tests pass before release.
+
+   NFR-008               Error responses never expose secrets, stack traces, private evidence or internal database details.
+
+   NFR-009               Timestamps are stored in UTC; UI displays localized times with the timezone clearly identified.
+
+   NFR-010               Retention schedules are configurable and enforceable; indefinite personal-data retention is prohibited by default.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                    Page 14
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 16. Acceptance tests and traceability
+   Test            Traceability                               Pass condition
+
+   AT-001          BR-004, FR-TRN-001                         Eligible receipt-backed claim without blockers can initiate transfer.
+
+   AT-002          BR-004, FR-TRN-008                         A recipient who acquired through AMANA can later request an eligible resale.
+
+   AT-003          BR-005                                     No eligible acquisition basis blocks AMANA-approved transfer but permits release if
+                                                              no other hold.
+
+   AT-004          BR-008, FR-INV-003                         New investigation deadline is exactly 720 hours after UTC opening timestamp.
+
+   AT-005          BR-009, FR-INV-006                         Only one extension of at most 360 hours is approved and audited.
+
+   AT-006          BR-010, FR-INV-007                         At 72 hours before deadline, warning is generated; at 1,080 hours without outcome,
+                                                              escalation assigns a named authority.
+
+   AT-007          BR-011, FR-INV-004                         Provisional restriction is triaged within 72 hours; overdue triage escalates.
+
+   AT-008          BR-012, FR-INV-001                         Duplicate report links to existing active case and does not reset deadline.
+
+   AT-009          BR-013, FR-INV-011                         Closed case cannot reopen without accepted materially new information.
+
+   AT-010          BR-016                                     Owner reporting own device retains case access; deactivation hold applies only if
+                                                              they are affected claimant.
+
+   AT-011          BR-020, FR-DEV-006                         New identifier conflict is held without automatically freezing existing claimant.
+
+   AT-012          BR-019, FR-DSP-002                         Current claimant can release association during dispute; independent restriction
+                                                              remains.
+
+   AT-013          BR-018, FR-TRN-004                         Unaccepted transfer expires after 72 hours and releases only its own hold.
+
+   AT-014          BR-025, FR-TRN-002                         Transfer cannot complete before explicit recipient acceptance.
+
+   AT-015          BR-021, FR-ACC-005                         Deactivation is blocked for each listed hold and allowed when none applies.
+
+   AT-016          BR-023                                     Restricted association remains recorded after deactivation and has an accountable
+                                                              resolution path.
+
+   AT-017          FR-DEV-002                                 Invalid IMEI length, nonnumeric characters and failed Luhn checksum are rejected.
+
+   AT-018          SEC-006, SEC-007                           Unsupported files, files over 10 MB, over-five-file submissions and signature/MIME
+                                                              mismatches are rejected.
+
+   AT-019          SEC-002                                    Direct API requests cannot bypass the permission matrix or object-level
+                                                              authorization.
+
+   AT-020          FR-LKP-004, FR-LKP-005                     Status precedence is correct and dispute/identifier details remain generic.
+
+   AT-021          SEC-008, SEC-009                           Each configured rate limit is enforced and does not automatically label the user
+                                                              malicious.
+
+   AT-022          BR-028, SEC-014                            Reviewer with system-detectable or self-declared conflict cannot decide; recusal is
+                                                              audited.
+
+   AT-023          FR-EVD-003                                 Receipt review completes within five days or escalates; pending is never accepted
+                                                              implicitly.
+
+   AT-024          BR-014                                     Reconsideration is within 30 days and decided by an independent senior reviewer
+                                                              within 10 days.
+
+   AT-025          Section 6.5                                Unsubstantiated/invalid outcome removes only its own provisional restriction.
+
+   AT-026          Section 5.2                                Every permission-matrix row is tested for transfer, release, deactivation, new claim
+                                                              and public label.
+
+   AT-027          FR-INV-002                                 Report, case link/open, restriction and audit event commit or roll back atomically.
+
+   AT-028          FR-TRN-007, Section 12.3                   Concurrent transfer and restriction requests cannot produce an unauthorized
+                                                              completed transfer.
+
+   AT-029          BR-010                                     At the 1,080-hour cap, escalation occurs without automatic theft finding; next review
+                                                              is recorded.
+
+   AT-030          FR-INV-012                                 Reopening records reason, new opening timestamp and deadline without erasing
+                                                              prior decision.
+
+   AT-031          Section 10                                 Declined, cancelled or expired transfer leaves source association unchanged and
+                                                              releases transfer-only hold.
+
+   AT-032          Section 8                                  Dispute outcome is recorded; voluntary release ends association dispute but not
+                                                              independent restrictions.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                           Page 15
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+   Test            Traceability                               Pass condition
+
+   AT-033          UI-005                                     Reviewer warning appears 72 hours before each relevant current deadline.
+
+   AT-034          Section 14.1                               Required in-app/email notifications are generated without private evidence leakage.
+
+   AT-035          UI-007                                     Core workflows render correctly in English and Amharic.
+
+   AT-036          BR-026, FR-LKP-002                         Public lookup cannot reveal whether a named person registered or claimed a device.
+
+   AT-037          BR-024                                     Restricted device with no claimant can receive a restricted claim but cannot transfer
+                                                              or release.
+
+   AT-038          Section 6.6                                Reconsideration follows its window/limit and does not erase prior decisions.
+
+   AT-039          FR-DEV-011, Section 12.2                   Database prevents two active associations for one device under concurrent
+                                                              requests.
+
+   AT-040          Section 12.2                               Database prevents two active theft investigations for one device under concurrent
+                                                              requests.
+
+   AT-041          Section 2.2                                Effective public status is derived, not independently editable.
+
+   AT-042          FR-DSP-004, Section 8                      Dispute warning, deadline, extension cap and escalation work as specified.
+
+   AT-043          Section 7                                  Identifier-conflict 15-day deadline, one 7-day extension and 22-day cap are
+                                                              enforced.
+
+   AT-044          SEC-018                                    Enumeration tests show no person-registration disclosure and rate limits are
+                                                              applied.
+
+   AT-045          SEC-019, SEC-020                           Unauthorized evidence access is denied and sensitive data is absent from security
+                                                              logs.
+
+   AT-046          Section 17                                 A clean environment can be configured, migrated, seeded with synthetic data and
+                                                              tested using the README.
+
+   AT-047          Section 18                                 Retention jobs follow the approved schedule and do not delete records under active
+                                                              legal/approved hold.
+
+   AT-048          NFR-001, NFR-002                           Load test with 50 concurrent users verifies 95th-percentile API and lookup targets.
+
+
+ 16.1 Release-blocking criteria
+ Release is blocked if any mandatory acceptance test fails; a protected API bypasses authorization; a transfer completes under
+ a blocker; a second active association or active theft case can be committed; public lookup reveals personal registration or
+ case details; private evidence is publicly accessible; audit history can be silently altered by an ordinary user; or a continuing
+ restriction lacks a source, accountable authority and review date.
+
+
+ 17. Deployment and operations
+ • README documents supported Node.js, npm, PostgreSQL and browser versions and required environment variables using
+ placeholders only.
+
+ • Database setup, migrations, seed data, backup and restore procedures are documented.
+
+ • First administrator/reviewer creation uses a secure bootstrap procedure; default passwords are prohibited.
+
+ • Frontend and backend startup, test, lint and build commands are documented.
+
+ • Private evidence storage and email configuration are documented.
+
+ • Production uses HTTPS, least-privilege database credentials, secure cookie configuration, protected backups and
+ documented dependency updates.
+
+ • Secrets are supplied through environment/secret management and never committed to source control.
+
+ • Demonstration data uses synthetic users, device identifiers, receipts and reports, not real personal records.
+
+ • Operational monitoring covers failed login/recovery patterns, rate limits, overdue cases, failed notification delivery, and
+ audit-protection failures.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                                           Page 16
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 18. Retention and unresolved approvals
+ Retention periods must be approved by the supervisor and checked against applicable Ethiopian legal and privacy obligations
+ before production use. The system must support configurable retention and deletion/anonymization where permitted. A case
+ hold must be documented, scoped, authorized and periodically reviewed; “retain everything forever” is not an acceptable
+ default.
+
+   Data category                                         Approval required before production
+
+   Device and identifier history                         [SUPERVISOR APPROVAL REQUIRED: period and lawful basis]
+
+   Claims and association history                        [SUPERVISOR APPROVAL REQUIRED: period and lawful basis]
+
+   Closed reports and investigation records              [SUPERVISOR APPROVAL REQUIRED: period and lawful basis]
+
+   Evidence files                                        [SUPERVISOR APPROVAL REQUIRED: period, access and deletion method]
+
+   Minimal contact data after deactivation               [SUPERVISOR APPROVAL REQUIRED: period and access controls]
+
+   Security and audit events                             [SUPERVISOR APPROVAL REQUIRED: period and access controls]
+
+   Designated project case authority                     [SUPERVISOR APPROVAL REQUIRED: role/person and escalation route]
+
+   Inconclusive restriction review policy                [SUPERVISOR APPROVAL REQUIRED: criteria and appeal/release authority]
+
+
+ 18.1 Privacy and retention principles
+ • Retain only data necessary for a defined operational, security, dispute or legal purpose.
+
+ • Public lookup never exposes prior claimants or personal history.
+
+ • Historical records may be retained while personal fields are anonymized when the approved schedule and legal basis permit.
+
+ • Account deactivation is not equivalent to immediate deletion of all records.
+
+ • All exceptional retention holds must have an authority, reason, scope and review date.
+
+
+ 19. Definition of done
+ • All mandatory acceptance tests pass and results are recorded.
+
+ • Backend authorization and the permission matrix are enforced on every relevant route.
+
+ • Database constraints prevent duplicate active associations and active investigations.
+
+ • Report screening and 72-hour triage are implemented.
+
+ • Investigation, identifier-conflict, dispute, transfer and reconsideration deadlines are enforced.
+
+ • Every active restriction has a documented source, accountable owner and next review date.
+
+ • Public lookup passes privacy, enumeration and rate-limit tests.
+
+ • Upload validation, authentication, authorization, CSRF, XSS, audit and concurrency controls pass.
+
+ • English and Amharic core workflows are tested.
+
+ • Setup, deployment, backup, restore and testing instructions are complete.
+
+ • Retention schedule and designated case authority are approved before production use.
+
+ • Synthetic data is used for demonstrations; no unsupported claim of legal ownership verification is made.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                      Page 17
+AMANA | Software Requirements Specification v4.0
+
+
+
+
+ 20. Approval block and change log
+   Approval field                                     Entry
+
+   Project supervisor                                 ____________________________________________
+
+   Student / project team                             ____________________________________________
+
+   Review date                                        ____________________________________________
+
+   Approved version                                   ____________________________________________
+
+   Approved exceptions / unresolved items             ____________________________________________
+
+
+ 20.1 Version 4.0 change log
+ • Consolidates the formal structure and requirement traceability of the PDF baseline with the detailed rules, matrix, workflows
+ and minimum data fields from the pasted SRS.
+
+ • Retains the 30-day (720-hour) initial investigation deadline, one 360-hour extension and 1,080-hour cap; clearly records that
+ this differs from the earlier 10-day proposal.
+
+ • Defines provisional triage, case outcomes, reconsideration, reopening, reviewer independence, and continuing-restriction
+ accountability.
+
+ • Defines identifier-conflict and claim-dispute deadlines, transfer acceptance/expiry, later receipt evidence, and acquisition
+ basis separately from receipt status.
+
+ • Adds 48 acceptance tests with explicit pass conditions and release-blocking criteria.
+
+ • Retains supervisor approval gates for retention periods, the designated case authority and inconclusive-restriction policy.
+
+
+
+
+Draft for supervisor review | Confidential project document                                                                   Page 18
+
