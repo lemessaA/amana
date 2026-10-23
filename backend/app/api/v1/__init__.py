@@ -7,6 +7,8 @@ from app.api.v1.investigations import router as investigations_router
 from app.api.v1.conflicts import router as conflicts_router
 from app.api.v1.disputes import router as disputes_router
 from app.api.v1.transfers import router as transfers_router
+from app.api.v1.evidence import router as evidence_router
+from app.api.v1.account import router as account_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
@@ -16,3 +18,5 @@ api_router.include_router(investigations_router)
 api_router.include_router(conflicts_router)
 api_router.include_router(disputes_router)
 api_router.include_router(transfers_router)
+api_router.include_router(evidence_router)
+api_router.include_router(account_router)

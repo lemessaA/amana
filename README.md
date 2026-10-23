@@ -17,7 +17,7 @@ Implementation in progress. Mandated stack for this repository: Next.js + TypeSc
 - IMEI syntax + Luhn validation.
 - Device registration with claim + association + audit event.
 - Public device lookup returning generic effective status only.
-- Tests: health, auth, device registration, lookup, invalid IMEI, theft report duplicate-linking.
+- Tests: health, auth, device registration, lookup, invalid IMEI, theft report duplicate-linking, identifier conflict, claim dispute release, transfer completion/resale, evidence upload and review.
 
 ## Next Priority
 

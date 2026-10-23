@@ -86,3 +86,27 @@ class Transfer(Base):
     accepted_at: Mapped[_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancelled_at: Mapped[_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Evidence(Base):
+    __tablename__ = "evidence"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    claim_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("device_claims.id", ondelete="SET NULL"), nullable=True, index=True)
+    case_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("investigation_cases.id", ondelete="SET NULL"), nullable=True, index=True)
+    submitted_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    private_storage_key: Mapped[str] = mapped_column(String(256))
+    mime_type: Mapped[str] = mapped_column(String(64))
+    file_size: Mapped[int] = mapped_column()
+    checksum: Mapped[str] = mapped_column(String(128))
+    review_status: Mapped[str] = mapped_column(String(16), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class EvidenceReview(Base):
+    __tablename__ = "evidence_reviews"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    evidence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evidence.id", ondelete="CASCADE"), index=True)
+    reviewer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    decision: Mapped[str] = mapped_column(String(32))
+    reason: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

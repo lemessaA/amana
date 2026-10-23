@@ -193,3 +193,70 @@ def test_transfer_complete_and_resale_eligible():
     third_id = client.get("/api/v1/auth/me", headers=h3).json()["id"]
     r = client.post("/api/v1/transfers/initiate", json={"device_id": device_id, "recipient_user_id": third_id}, headers=h2)
     assert r.status_code == 200, r.text
+
+
+def test_evidence_upload_and_review():
+    import uuid, io
+    from app.db.session import SessionLocal
+    from app.models.user import User
+    email = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
+    token = r.json()["access_token"]; h = {"Authorization": f"Bearer {token}"}
+
+    # valid PDF upload
+    pdf = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n"
+    files = {"file": ("receipt.pdf", io.BytesIO(pdf), "application/pdf")}
+    r = client.post("/api/v1/evidence/upload", files=files, headers=h)
+    assert r.status_code == 200, r.text
+    eid = r.json()["evidence_id"]
+    assert r.json()["review_status"] == "pending"
+
+    # unsupported extension
+    files = {"file": ("bad.exe", io.BytesIO(b"MZ"), "application/octet-stream")}
+    r = client.post("/api/v1/evidence/upload", files=files, headers=h)
+    assert r.status_code == 400
+
+    # make reviewer and accept
+    r2_email = f"rev{uuid.uuid4().hex[:6]}@example.com"
+    rr = client.post("/api/v1/auth/register", json={"email": r2_email, "password": "Passw0rd!"})
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == r2_email).first()
+    u.role = "reviewer"
+    db.commit(); db.close()
+    rh = {"Authorization": f"Bearer {rr.json()['access_token']}"}
+    r = client.post(f"/api/v1/evidence/{eid}/review", data={"decision": "accepted", "reason": "ok"}, headers=rh)
+    assert r.status_code == 200, r.text
+    assert r.json()["review_status"] == "accepted"
+
+
+def test_account_deactivation_allowed_and_blocked():
+    import uuid, random
+    from app.db.session import SessionLocal
+    from app.models.device import DeviceClaim
+
+    # Blocked by pending transfer
+    email1 = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email1, "password": "Passw0rd!"})
+    t1 = r.json()["access_token"]; h1 = {"Authorization": f"Bearer {t1}"}
+    email2 = f"r{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email2, "password": "Passw0rd!"})
+    recipient_id = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).json()["id"]
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h1)
+    device_id = r.json()["device_id"]
+    db = SessionLocal()
+    claim = db.query(DeviceClaim).filter(DeviceClaim.device_id == device_id).first()
+    claim.acquisition_basis = "accepted receipt-backed claim"
+    db.commit(); db.close()
+    r = client.post("/api/v1/transfers/initiate", json={"device_id": device_id, "recipient_user_id": recipient_id}, headers=h1)
+    assert r.status_code == 200
+    r = client.post("/api/v1/account/deactivate", headers=h1)
+    assert r.status_code == 400, r.text
+
+    # Allowed when no holds
+    email3 = f"u{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email3, "password": "Passw0rd!"})
+    h3 = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    r = client.post("/api/v1/account/deactivate", headers=h3)
+    assert r.status_code == 200, r.text
+    assert r.json()["account_status"] == "deactivated"
