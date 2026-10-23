@@ -11,11 +11,15 @@ ALGORITHM = "HS256"
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    # Bcrypt has a 72-byte password limit; truncate to prevent errors
+    truncated_password = password[:72]
+    return pwd_context.hash(truncated_password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    # Bcrypt has a 72-byte password limit; truncate to prevent errors
+    truncated_plain = plain[:72]
+    return pwd_context.verify(truncated_plain, hashed)
 
 
 def create_access_token(subject: str, expires_minutes: int | None = None) -> str:
