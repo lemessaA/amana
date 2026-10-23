@@ -70,7 +70,7 @@ export default function LookupPage() {
                   type="text"
                   placeholder="Enter IMEI (phone) or serial number (computer)..."
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifier(e.target.value)}
                   className="flex-1 h-10 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   disabled={loading}
                   autoFocus

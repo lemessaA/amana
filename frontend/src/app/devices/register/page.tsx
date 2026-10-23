@@ -107,7 +107,7 @@ export default function RegisterDevicePage() {
                 label="Device Type"
                 as="select"
                 value={deviceType}
-                onChange={(e) => setDeviceType(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeviceType(e.target.value)}
                 disabled={loading}
                 options={[
                   { value: "phone", label: "Phone" },
@@ -120,7 +120,7 @@ export default function RegisterDevicePage() {
                 label="Identifier Type"
                 as="select"
                 value={identifierType}
-                onChange={(e) => setIdentifierType(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifierType(e.target.value)}
                 disabled={loading}
                 options={[
                   { value: "imei", label: "IMEI (15 digits)" },
@@ -142,7 +142,7 @@ export default function RegisterDevicePage() {
                     : "e.g., ABC123456789"
                 }
                 value={identifierValue}
-                onChange={(e) => setIdentifierValue(e.target.value.trim())}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifierValue(e.target.value.trim())}
                 disabled={loading}
                 required
                 hint={
@@ -156,7 +156,7 @@ export default function RegisterDevicePage() {
                 label="Acquisition Basis"
                 as="select"
                 value={acquisitionBasis}
-                onChange={(e) => setAcquisitionBasis(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAcquisitionBasis(e.target.value)}
                 disabled={loading}
                 options={[
                   { value: "personal_purchase", label: "Personal Purchase" },

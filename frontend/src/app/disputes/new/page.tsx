@@ -95,7 +95,7 @@ export default function DisputePage() {
                 type="text"
                 placeholder="IMEI or serial number"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifier(e.target.value)}
                 disabled={loading || !!success}
                 required
               />
@@ -104,7 +104,7 @@ export default function DisputePage() {
                 label="Your Acquisition Basis"
                 as="select"
                 value={basis}
-                onChange={(e) => setBasis(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBasis(e.target.value)}
                 disabled={loading || !!success}
                 options={[
                   { value: "personal_purchase", label: "Personal Purchase" },
@@ -120,7 +120,7 @@ export default function DisputePage() {
                 as="textarea"
                 placeholder="Explain why you believe you have a claim to this device..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
                 disabled={loading || !!success}
                 required
               />

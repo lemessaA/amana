@@ -97,7 +97,7 @@ export default function ReportTheftPage() {
                 type="text"
                 placeholder="IMEI or serial number"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifier(e.target.value)}
                 disabled={loading || !!success}
                 required
               />
@@ -106,7 +106,7 @@ export default function ReportTheftPage() {
                 label="Report Category"
                 as="select"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCategory(e.target.value)}
                 disabled={loading || !!success}
                 options={[
                   { value: "theft", label: "Suspected Theft" },
@@ -122,7 +122,7 @@ export default function ReportTheftPage() {
                 as="textarea"
                 placeholder="Provide details about the issue..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
                 disabled={loading || !!success}
                 required
               />

@@ -60,7 +60,7 @@ export default function LoginPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEmail(e.target.value)}
                 disabled={loading}
                 required
               />
@@ -75,7 +75,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPassword(e.target.value)}
                     disabled={loading}
                     required
                     className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 pr-10"

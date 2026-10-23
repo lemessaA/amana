@@ -90,7 +90,7 @@ export default function IdentifierConflictPage() {
                 type="text"
                 placeholder="IMEI or serial number"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value.trim())}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIdentifier(e.target.value.trim())}
                 disabled={loading || !!success}
                 required
               />

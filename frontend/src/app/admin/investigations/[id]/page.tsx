@@ -182,7 +182,7 @@ export default function InvestigationDetailPage({ params }: { params: { id: stri
                   as="textarea"
                   placeholder="Explain your decision..."
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
                   disabled={submitting}
                   required
                 />
