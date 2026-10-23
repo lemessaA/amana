@@ -126,3 +126,70 @@ def test_identifier_conflict_holds_new_submission():
     r = client.post("/api/v1/identifier-conflicts", json={"identifier_value": imei}, headers=h2)
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "open"
+
+
+def test_claim_dispute_and_voluntary_release():
+    import uuid, random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    # owner
+    email1 = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email1, "password": "Passw0rd!"})
+    t1 = r.json()["access_token"]
+    h1 = {"Authorization": f"Bearer {t1}"}
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h1)
+    assert r.status_code == 200
+    # competing claimant
+    email2 = f"c{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email2, "password": "Passw0rd!"})
+    t2 = r.json()["access_token"]
+    h2 = {"Authorization": f"Bearer {t2}"}
+    r = client.post("/api/v1/claim-disputes", json={"identifier_value": imei, "acquisition_basis": "other/unverified", "description": "competing claim"}, headers=h2)
+    assert r.status_code == 200, r.text
+    case_id = r.json()["case_id"]
+    # voluntary release by owner
+    r = client.post(f"/api/v1/claim-disputes/{case_id}/release", headers=h1)
+    assert r.status_code == 200, r.text
+    assert r.json()["outcome"] == "released_by_claimant"
+
+
+def test_transfer_complete_and_resale_eligible():
+    import uuid, random
+    from app.db.session import SessionLocal
+    from app.models.device import DeviceClaim, DeviceAssociation
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
+    # owner
+    email1 = f"o{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email1, "password": "Passw0rd!"})
+    t1 = r.json()["access_token"]; h1 = {"Authorization": f"Bearer {t1}"}
+    # recipient
+    email2 = f"r{uuid.uuid4().hex[:8]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email2, "password": "Passw0rd!"})
+    t2 = r.json()["access_token"]; h2 = {"Authorization": f"Bearer {t2}"}
+    recipient_id = client.get("/api/v1/auth/me", headers=h2).json()["id"]
+
+    r = client.post("/api/v1/devices/register", json={"device_type": "phone", "identifier_type": "imei", "identifier_value": imei}, headers=h1)
+    assert r.status_code == 200
+    device_id = r.json()["device_id"]
+
+    # mark eligible basis
+    db = SessionLocal()
+    claim = db.query(DeviceClaim).filter(DeviceClaim.device_id == device_id).first()
+    claim.acquisition_basis = "accepted receipt-backed claim"
+    db.commit()
+    db.close()
+
+    r = client.post("/api/v1/transfers/initiate", json={"device_id": device_id, "recipient_user_id": recipient_id}, headers=h1)
+    assert r.status_code == 200, r.text
+    tid = r.json()["transfer_id"]
+    # recipient accepts
+    r = client.post(f"/api/v1/transfers/{tid}/accept", headers=h2)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "completed"
+
+    # recipient acquired basis eligible -> can initiate another transfer to a third user
+    email3 = f"r2{uuid.uuid4().hex[:6]}@example.com"
+    r = client.post("/api/v1/auth/register", json={"email": email3, "password": "Passw0rd!"})
+    t3 = r.json()["access_token"]; h3 = {"Authorization": f"Bearer {t3}"}
+    third_id = client.get("/api/v1/auth/me", headers=h3).json()["id"]
+    r = client.post("/api/v1/transfers/initiate", json={"device_id": device_id, "recipient_user_id": third_id}, headers=h2)
+    assert r.status_code == 200, r.text

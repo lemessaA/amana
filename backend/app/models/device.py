@@ -34,7 +34,7 @@ class DeviceClaim(Base):
     device_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), index=True)
     claimant_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     receipt_status: Mapped[str] = mapped_column(String(16), default="receipt-free")
-    acquisition_basis: Mapped[str] = mapped_column(String(32), default="other/unverified")
+    acquisition_basis: Mapped[str] = mapped_column(String(64), default="other/unverified")
     claim_status: Mapped[str] = mapped_column(String(16), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -66,3 +66,23 @@ class Restriction(Base):
     next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     accountable_authority_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
+
+
+# Transfer model placed here to avoid new file imports complexity
+from sqlalchemy import DateTime as _DT, ForeignKey as _FK, String as _S
+import uuid as _uuid
+from datetime import datetime as _datetime, timezone as _tz
+
+class Transfer(Base):
+    __tablename__ = "transfers"
+    id: Mapped[_uuid.UUID] = mapped_column(primary_key=True, default=_uuid.uuid4)
+    device_id: Mapped[_uuid.UUID] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), index=True)
+    source_claim_id: Mapped[_uuid.UUID] = mapped_column(ForeignKey("device_claims.id", ondelete="CASCADE"), index=True)
+    recipient_user_id: Mapped[_uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    acquisition_basis: Mapped[str] = mapped_column(String(64), default="Acquired via AMANA-approved transfer")
+    initiated_at: Mapped[_datetime] = mapped_column(DateTime(timezone=True), default=lambda: _datetime.now(_tz.utc))
+    expires_at: Mapped[_datetime] = mapped_column(DateTime(timezone=True))
+    accepted_at: Mapped[_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
