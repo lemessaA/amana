@@ -5,6 +5,19 @@ from app.main import app
 client = TestClient(app)
 
 
+def make_imei(base14: str) -> str:
+    total = 0
+    for i, ch in enumerate(reversed(base14)):
+        d = int(ch)
+        if i % 2 == 0:
+            d *= 2
+            if d > 9:
+                d -= 9
+        total += d
+    check = (10 - (total % 10)) % 10
+    return base14 + str(check)
+
+
 def test_health():
     r = client.get("/health")
     assert r.status_code == 200
@@ -12,10 +25,10 @@ def test_health():
 
 
 def test_register_login_lookup():
-    email = "test1@example.com"
-    # cleanup not handled; use unique email
     import uuid
     email = f"t{uuid.uuid4().hex[:8]}@example.com"
+    import random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
     r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
     assert r.status_code == 201, r.text
     token = r.json()["access_token"]
@@ -23,18 +36,15 @@ def test_register_login_lookup():
     r = client.get("/api/v1/auth/me", headers=headers)
     assert r.status_code == 200
     assert r.json()["email"] == email
-    # register device
     r = client.post("/api/v1/devices/register", json={
         "device_type": "phone",
         "identifier_type": "imei",
-        "identifier_value": "490154203237518",
+        "identifier_value": imei,
     }, headers=headers)
     assert r.status_code == 200, r.text
-    # public lookup
-    r = client.get("/api/v1/devices/lookup", params={"identifier": "490154203237518"})
+    r = client.get("/api/v1/devices/lookup", params={"identifier": imei})
     assert r.status_code == 200
     assert r.json()["effective_status"] == "No active theft restriction found"
-    # invalid IMEI
     r = client.post("/api/v1/devices/register", json={
         "device_type": "phone",
         "identifier_type": "imei",
@@ -46,25 +56,26 @@ def test_register_login_lookup():
 def test_theft_report():
     import uuid
     email = f"t{uuid.uuid4().hex[:8]}@example.com"
+    import random
+    imei = make_imei("".join(str(random.randrange(10)) for _ in range(14)))
     r = client.post("/api/v1/auth/register", json={"email": email, "password": "Passw0rd!"})
     token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     r = client.post("/api/v1/devices/register", json={
         "device_type": "phone",
         "identifier_type": "imei",
-        "identifier_value": "353326084996223",
+        "identifier_value": imei,
     }, headers=headers)
     assert r.status_code == 200, r.text
     r = client.post("/api/v1/theft-reports", json={
-        "identifier_value": "353326084996223",
+        "identifier_value": imei,
         "allegation_category": "lost",
         "description": "phone stolen",
     }, headers=headers)
     assert r.status_code == 200, r.text
     assert r.json()["duplicate"] is False
-    # second report links
     r2 = client.post("/api/v1/theft-reports", json={
-        "identifier_value": "353326084996223",
+        "identifier_value": imei,
         "allegation_category": "lost",
         "description": "duplicate",
     }, headers=headers)
